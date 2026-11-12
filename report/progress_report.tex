@@ -1,0 +1,110 @@
+% CS771 progress report -- CVPR 2027 author kit, camera-ready mode, 11pt as required.
+% Compile: tectonic progress_report.tex   (or upload this folder to Overleaf)
+\documentclass[11pt,twocolumn,letterpaper]{article}
+\usepackage[T1]{fontenc}       % makes Times (from cvpr.sty) work under XeTeX/tectonic too
+\usepackage{cvpr}              % no [review] option => final / camera-ready version
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=*}
+
+\title{Occlusion-Robust ST-GCN for Smart-Environment Action Recognition\\{\large Progress Report}}
+\author{Karthik Reddy Jannupalli \and Sanjana Kallingal \and Penchala Siva Prasanth Kasa}
+
+\begin{document}
+\maketitle
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llcccccccc@{}}
+\toprule
+ & & \multicolumn{5}{c}{Seen-type occlusion (structured)} & \multicolumn{3}{c}{Held-out occlusion} \\
+\cmidrule(lr){3-7}\cmidrule(l){8-10}
+Model & Train aug. & Clean & Lower & Furn. & Furn.+noise & Self & Arm$^\dagger$ & Temporal$^\dagger$ & Rand.\,30\%$^\ddagger$ \\
+\midrule
+Bi-LSTM & -- & 75.9 & 53.9 & 56.3 & 66.9 & 73.0 & 39.8 & 43.6 & 65.1 \\
+Bi-LSTM & geometric (ours) & 76.6 & 72.9 & 75.1 & 75.0 & 76.0 & 51.7 & 52.7 & 69.8 \\
+1D-CNN & -- & 78.6 & 45.5 & 47.8 & 67.1 & 75.1 & 41.7 & 43.8 & 61.3 \\
+1D-CNN & geometric (ours) & 79.1 & 73.7 & 77.4 & 77.1 & 78.4 & 50.9 & \textbf{60.3} & 71.3 \\
+\midrule
+ST-GCN & -- & \textbf{82.5} & 76.9 & 74.8 & 78.7 & 78.8 & 65.4 & 43.7 & 37.3 \\
+ST-GCN & random joint & 82.2 & 76.0 & 74.8 & 79.0 & 80.8 & 65.8 & 36.6 & \textbf{81.4} \\
+ST-GCN & lower-body (prop.) & 80.7 & \textbf{80.7} & 75.5 & 78.8 & 77.7 & 63.1 & 43.6 & 42.5 \\
+ST-GCN & geometric (ours) & 82.1 & \textbf{80.7} & \textbf{81.2} & \textbf{81.2} & \textbf{81.9} & \textbf{68.8} & 54.8 & 61.0 \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Joints hidden (\%)}} & 0 & 32 & 19 & 20 & 3 & 24 & 41 & 30 \\
+\bottomrule
+\end{tabular}
+\caption{Top-1 accuracy (\%) on our 22-class domestic subset of NTU-60 (cross-subject, 6{,}038 test clips, one seed, 30 epochs).
+Hidden joints are zeroed except in ``Furniture+noise'', where they hold their last observed position plus jitter.
+$^\dagger$Never seen in training by any variant. $^\ddagger$Seen only by the random-joint variant.}
+\label{tab:results}
+\end{table*}
+
+%--------------------------------------------------------------------
+\section{Status and Scope Change}
+We have a working end-to-end pipeline and first results (Tab.~\ref{tab:results}).
+\textbf{Changes from the proposal} (in response to the feedback, Sec.~\ref{sec:resp}):
+(i) the fixed lower-body cluster dropout is replaced by a \emph{geometric} occlusion model covering
+furniture and self-occlusion; (ii) the evaluation now uses several occlusion types, including types
+never seen in training; (iii) the 2D-keypoint branch (MediaPipe~\cite{lugaresi2019mediapipe}/YOLOv8) and the edge-hardware study are deferred.
+
+%--------------------------------------------------------------------
+\section{Work Completed}
+\textbf{Data.} 22 domestic single-person classes of NTU RGB+D 60~\cite{shahroudy2016ntu} (\eg drink, read, type, sit down, put on shoe, falling),
+cross-subject split (14{,}690 train / 6{,}038 test), Kinect 3D joints in camera coordinates, resampled to 64 frames.
+Each sequence is centered on the spine-shoulder joint at its first \emph{visible} frame, so normalization never uses hidden joints.
+
+\textbf{Occlusion model (ours).}
+\emph{Furniture:} a virtual box stands on the floor between camera and subject (random height from feet to above the hips, width, offset and distance).
+A joint is hidden when its camera ray crosses the box, which yields partial, perspective-correct occlusion that changes per frame as the person moves.
+\emph{Self-occlusion:} a joint is hidden when it projects inside the torso (shoulders--hips, widened by body thickness) and lies behind it.
+\emph{Fill:} hidden joints are either zeroed or, mimicking sensor behaviour, held at the last observed position plus 5\,cm jitter.
+Training applies one of these per sample with probability 0.6, sometimes only on a sub-window of frames.
+
+\textbf{Models.} ST-GCN~\cite{yan2018stgcn} (10 blocks, 3.1M params), Bi-LSTM (2.3M) and 1D-CNN (1.0M) baselines, all trained 30 epochs with AdamW on one NVIDIA L4.
+A 69-check test suite verifies the occlusion geometry and the training/eval pipeline.
+
+\textbf{Preliminary findings.}
+(1)~Geometric augmentation makes ST-GCN the best or tied-best model on every structured occlusion
+(furniture $+6.4$, self-occlusion $+3.1$ over no augmentation) at a 0.4-point clean cost.
+It also transfers to held-out types (one arm $+3.4$, temporal block $+11.1$).
+(2)~The proposal's lower-body dropout helps \emph{only} on the matching lower-body test ($+3.8$) and barely on realistic furniture occlusion ($+0.7$), which confirms the reviewer's concern.
+(3)~Random-joint dropout wins only on random dropout, the condition it trains on, and hurts temporal occlusion.
+(4)~Zeroed joints hurt unaugmented models far more than sensor-like noisy fill (1D-CNN 47.8 vs.\ 67.1), so simulation choices strongly change robustness conclusions.
+(5)~Whole-frame (temporal) occlusion remains the hardest case for all models ($\leq$60\%).
+
+\textbf{Difficulties.} Official NTU access requires approval, so we used the public preprocessed
+release from PYSKL/OpenMMLab~\cite{duan2022pyskl}. The new GCP project had zero GPU quota, which we resolved via a quota request.
+All occlusion so far is simulated, and results are from a single seed.
+
+%--------------------------------------------------------------------
+\section{Next Steps}
+\begin{enumerate}
+\item \textbf{Real occlusion.} Evaluate on Toyota Smarthome~\cite{das2019toyota} (real apartments, furniture occlusion; requires an access request) and on NTU clips with untracked Kinect joints (tracking state from the raw data).
+\item \textbf{Temporal robustness.} Add frame-block occlusion with temporal interpolation, and feed a per-joint visibility/confidence channel.
+\item \textbf{Rigor.} Three seeds, the cross-view split, and the part/frame occlusion protocol of RA-GCN~\cite{song2020ragcn}.
+\item \textbf{Deployment.} 2D keypoints from MediaPipe on RGB, and CPU/edge latency. (So far only $\approx$5.4\,ms per clip on a shared L4 GPU.)
+\end{enumerate}
+
+%--------------------------------------------------------------------
+\section{Response to Proposal Feedback}\label{sec:resp}
+\textbf{``Random masking may not simulate realistic self- and object occlusion.''}
+We agree. The proposal masked a fixed cluster at random, which does not model how occlusion arises.
+We now derive masks from 3D scene geometry (furniture occluders) and from body geometry (self-occlusion), and corrupt hidden joints as a sensor would.
+Finding~(2) shows the difference matters: cluster dropout does not transfer to furniture occlusion, but geometric occlusion does.
+
+\textbf{``The evaluation does not consider realistic occlusion.''}
+Test-time occlusion now includes furniture, self-occlusion, noisy fill and three held-out types, rather than only the training augmentation.
+Real occluded data (Toyota Smarthome, untracked NTU joints) is our first next step.
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{refs}
+}
+\end{document}

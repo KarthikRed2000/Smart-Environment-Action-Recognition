@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COLS = ["clean", "lowerbody", "furniture", "furniture_noisy", "self_occ", "one_arm", "temporal_block", "random_30"]
 SHORT = {"clean": "Clean", "lowerbody": "Lower", "furniture": "Furn.", "furniture_noisy": "Furn.+N",
          "self_occ": "Self", "one_arm": "Arm$^\\dagger$", "temporal_block": "Temp.$^\\dagger$",
-         "random_30": "Rand.$^\\dagger$"}
+         "random_30": "Rand.$^\\ddagger$"}
 ORDER = [("bilstm", "none"), ("bilstm", "geometric"), ("cnn1d", "none"), ("cnn1d", "geometric"),
          ("stgcn", "none"), ("stgcn", "random"), ("stgcn", "lowerbody"), ("stgcn", "geometric")]
 NAME = {"bilstm": "Bi-LSTM", "cnn1d": "1D-CNN", "stgcn": "ST-GCN"}
@@ -51,7 +51,7 @@ def main():
         lines.append(f"{NAME.get(k[0], k[0])} & {AUG.get(k[1], k[1])} & " + " & ".join(cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}",
               r"\caption{Top-1 accuracy (\%) on the 22-class NTU-60 domestic subset (cross-subject). "
-              r"$^\dagger$Occlusion types not used by any training augmentation.}",
+              r"$^\dagger$Never seen in training by any variant. $^\ddagger$Seen only by the random-joint variant.}",
               r"\label{tab:results}", r"\end{table*}"]
     (ROOT / "results/table.tex").write_text("\n".join(lines) + "\n")
     print("\nwrote results/table.tex")

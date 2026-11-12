@@ -13,3 +13,5 @@ __pycache__/
 *.bbl
 *.blg
 *.synctex.gz
+
+# keep the compiled report PDF, ignore tectonic logs

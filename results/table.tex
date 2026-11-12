@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llcccccccc@{}}
+\toprule
+Model & Train aug. & Clean & Lower & Furn. & Furn.+N & Self & Arm$^\dagger$ & Temp.$^\dagger$ & Rand.$^\ddagger$ \\
+\midrule
+Bi-LSTM & -- & 75.9 & 53.9 & 56.3 & 66.9 & 73.0 & 39.8 & 43.6 & 65.1 \\
+Bi-LSTM & geometric (ours) & 76.6 & 72.9 & 75.1 & 75.0 & 76.0 & 51.7 & 52.7 & 69.8 \\
+1D-CNN & -- & 78.6 & 45.5 & 47.8 & 67.1 & 75.1 & 41.7 & 43.8 & 61.3 \\
+1D-CNN & geometric (ours) & 79.1 & 73.7 & 77.4 & 77.1 & 78.4 & 50.9 & \textbf{60.3} & 71.3 \\
+ST-GCN & -- & \textbf{82.5} & 76.9 & 74.8 & 78.7 & 78.8 & 65.4 & 43.7 & 37.3 \\
+ST-GCN & rand. joint & 82.2 & 76.0 & 74.8 & 79.0 & 80.8 & 65.8 & 36.6 & \textbf{81.4} \\
+ST-GCN & lower-body & 80.7 & \textbf{80.7} & 75.5 & 78.8 & 77.7 & 63.1 & 43.6 & 42.5 \\
+ST-GCN & geometric (ours) & 82.1 & 80.7 & \textbf{81.2} & \textbf{81.2} & \textbf{81.9} & \textbf{68.8} & 54.8 & 61.0 \\
+\bottomrule
+\end{tabular}
+\caption{Top-1 accuracy (\%) on the 22-class NTU-60 domestic subset (cross-subject). $^\dagger$Never seen in training by any variant. $^\ddagger$Seen only by the random-joint variant.}
+\label{tab:results}
+\end{table*}
