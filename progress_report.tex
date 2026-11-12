@@ -1,0 +1,112 @@
+% CS771 Progress Report -- uses the CVPR author kit (https://github.com/cvpr-org/author-kit/releases)
+% Put this file next to cvpr.sty (and the other kit files) from the release zip, or upload into the kit on Overleaf.
+% Prof requires 11pt, double column, final/camera-ready mode.
+\documentclass[11pt,twocolumn,letterpaper]{article}
+\usepackage{cvpr}              % no [review] option => final / camera-ready version
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+
+% Highlight anything that still needs real content. Delete before submitting.
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\def\paperID{****}
+\def\confName{CS771}
+\def\confYear{2026}
+
+\title{Occlusion-Robust Spatial-Temporal Graph Convolutional Networks\\for Smart Environment Action Recognition\\{\large Progress Report}}
+
+\author{Karthik Reddy Jannupalli \and Sanjana Kallingal \and Penchala Siva Prasanth Kasa}
+
+\begin{document}
+\maketitle
+
+%--------------------------------------------------------------------
+\section{Current Status and Scope Change}
+We are building an occlusion-robust skeleton action recognizer on ST-GCN~\cite{yan2018stgcn}
+for smart-home settings, using a domestic-action subset of NTU RGB+D~\cite{shahroudy2016ntu}.
+\textbf{Change from the proposal:} following the feedback, we have replaced the fixed
+lower-body cluster dropout with a \emph{geometry-driven} occlusion model that covers both
+object occlusion and self-occlusion. We have also redesigned the evaluation so that
+test-time occlusion differs from training-time augmentation and includes naturally
+occluded real-home data. The edge-efficiency study is now secondary.
+\todo{confirm/adjust: which of these changes the team is actually adopting}
+
+%--------------------------------------------------------------------
+\section{Work Completed}
+\textbf{Data pipeline.} \todo{e.g., selected N domestic classes (list a few), cross-subject/cross-view splits, 25-joint Kinect graph; status of MediaPipe~\cite{lugaresi2019mediapipe}/YOLOv8-Pose~\cite{jocher2023yolov8} 2D keypoint extraction and joint mapping.}
+
+\textbf{Models.} \todo{which of Bi-LSTM, 1D-CNN, ST-GCN are implemented and trained; framework and hardware; training epochs.}
+
+\textbf{Occlusion simulation.} Beyond whole-cluster dropout, we model
+(i) \emph{object occlusion} by placing virtual furniture-like occluders (boxes of varying
+height and position) in 3D and masking joints whose camera ray intersects the occluder;
+(ii) \emph{self-occlusion} by using NTU's three camera views and joint depth relative to
+the torso to mark hidden joints; (iii) \emph{temporal occlusion}, where occluders cover
+contiguous frame blocks; and (iv) \emph{estimator-like corruption}, where occluded joints
+receive jitter or held last-seen positions instead of clean zeros.
+\todo{mark which of (i)--(iv) are implemented vs.\ planned.}
+
+\textbf{Preliminary results.} \todo{Fill the table with real numbers; drop rows that are not run yet.}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Model & Clean & Lower-body occ. & Unseen occ. \\
+\midrule
+Bi-LSTM              & -- & -- & -- \\
+1D-CNN               & -- & -- & -- \\
+ST-GCN (no aug.)     & -- & -- & -- \\
+ST-GCN + rand.\ joint drop & -- & -- & -- \\
+ST-GCN + ours        & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{Top-1 accuracy (\%) on the NTU domestic subset. \todo{define each test condition precisely.}}
+\label{tab:prelim}
+\end{table}
+
+\textbf{Difficulties.} \todo{real issues, e.g., NTU download size/preprocessing time, 2D--3D joint-topology mismatch between MediaPipe (33) / COCO (17) / Kinect (25), GPU limits, Kinect joints under occlusion are noisy rather than missing.}
+
+%--------------------------------------------------------------------
+\section{Next Steps}
+\begin{enumerate}\setlength{\itemsep}{0pt}
+\item \textbf{Finish the occlusion model} \todo{remaining parts} and confidence-aware input (joint confidence as an extra channel).
+\item \textbf{Held-out occlusion evaluation:} train with our augmentation, then test on occlusion types not used in training (arms, torso, random regions, frame blocks), following the part- and frame-level occlusion protocol of RA-GCN~\cite{song2020ragcn}.
+\item \textbf{Real occlusion:} evaluate on naturally occluded data, namely the Toyota Smarthome dataset~\cite{das2019toyota} (real apartments, furniture occlusion) and NTU samples with low Kinect tracking confidence.
+\item \textbf{Ablation:} no augmentation vs.\ random-joint dropout vs.\ cluster dropout vs.\ geometric occlusion.
+\item \textbf{Efficiency:} latency and parameter count on edge hardware (if time permits).
+\end{enumerate}
+\todo{add owner per item and rough dates up to the final deadline.}
+
+%--------------------------------------------------------------------
+\section{Response to Proposal Feedback}
+\textbf{Comment:} random masking may not simulate realistic self- and object occlusion.
+\textbf{Response:} our proposal already masked anatomical clusters rather than random joints,
+but we agree that a fixed cluster dropped at random does not reflect real occlusion. We now derive
+masks from scene geometry (virtual occluders and camera viewpoint), add self-occlusion from
+multi-view depth, make occlusion temporally contiguous, and corrupt occluded joints the way
+pose estimators do instead of zeroing them (Sec.~2).
+
+\textbf{Comment:} the evaluation does not consider realistic occlusion, so generalization is unclear.
+\textbf{Response:} previously, the test-time occlusion matched the training augmentation.
+We now (a) test on occlusion types unseen during training, (b) evaluate on naturally occluded
+real-home data (Toyota Smarthome) and low-confidence NTU samples, and (c) add an ablation
+isolating the effect of the occlusion model (Sec.~3).
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\begin{thebibliography}{9}
+\bibitem{yan2018stgcn} S.~Yan, Y.~Xiong, and D.~Lin. Spatial temporal graph convolutional networks for skeleton-based action recognition. In \emph{AAAI}, 2018.
+\bibitem{shahroudy2016ntu} A.~Shahroudy, J.~Liu, T.-T.~Ng, and G.~Wang. NTU RGB+D: A large scale dataset for 3D human activity analysis. In \emph{CVPR}, 2016.
+\bibitem{lugaresi2019mediapipe} C.~Lugaresi et al. MediaPipe: A framework for building perception pipelines. \emph{arXiv:1906.08172}, 2019.
+\bibitem{jocher2023yolov8} G.~Jocher, A.~Chaurasia, and J.~Qiu. Ultralytics YOLOv8. \url{https://github.com/ultralytics/ultralytics}, 2023.
+\bibitem{song2020ragcn} Y.-F.~Song, Z.~Zhang, C.~Shan, and L.~Wang. Richly activated graph convolutional network for robust skeleton-based action recognition. \emph{IEEE TCSVT}, 2020.
+\bibitem{das2019toyota} S.~Das, R.~Dai, M.~Koperski, L.~Minciullo, L.~Garattoni, F.~Bremond, and G.~Francesca. Toyota Smarthome: Real-world activities of daily living. In \emph{ICCV}, 2019.
+\end{thebibliography}
+}
+
+\end{document}
