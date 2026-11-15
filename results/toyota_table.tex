@@ -1,0 +1,11 @@
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Train aug. & \multicolumn{2}{c}{Real test (no sim.)} & +Furn. & +Self & +Arm & +Temp. & +Rand. \\
+ & Top-1 & Mean cls. & \multicolumn{5}{c}{Mean class acc.} \\
+\midrule
+-- & 73.7 & 53.2 & 22.4 & 48.0 & 24.6 & 13.1 & 9.8 \\
+rand. joint & 71.9 & 51.0 & 30.8 & 48.1 & 24.1 & 26.4 & \textbf{50.6} \\
+lower-body (prop.) & 73.5 & 51.7 & 41.6 & 44.6 & 19.9 & 30.8 & 21.6 \\
+geometric (ours) & 74.1 & \textbf{53.5} & \textbf{50.7} & \textbf{52.6} & \textbf{25.1} & \textbf{31.6} & 32.4 \\
+\bottomrule
+\end{tabular}

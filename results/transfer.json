@@ -10,5 +10,62 @@
     "play with phone",
     "type on keyboard"
   ],
-  "models": {}
+  "models": {
+    "none": {
+      "acc": 0.15811170212765957,
+      "mean_class_acc": 0.1779953819795594,
+      "per_class": {
+        "drink water": 0.26092943201376934,
+        "eat meal": 0.05186972255729795,
+        "sit down": 0.002688172043010753,
+        "stand up": 0.007202881152460984,
+        "reading": 0.18471337579617833,
+        "phone call": 0.09111111111111111,
+        "play with phone": 0.46938775510204084,
+        "type on keyboard": 0.3560606060606061
+      }
+    },
+    "random": {
+      "acc": 0.1148936170212766,
+      "mean_class_acc": 0.17854852980849617,
+      "per_class": {
+        "drink water": 0.13631669535283994,
+        "eat meal": 0.06875753920386007,
+        "sit down": 0.016129032258064516,
+        "stand up": 0.027611044417767107,
+        "reading": 0.05626326963906582,
+        "phone call": 0.12444444444444444,
+        "play with phone": 0.3877551020408163,
+        "type on keyboard": 0.6111111111111112
+      }
+    },
+    "lowerbody": {
+      "acc": 0.16316489361702127,
+      "mean_class_acc": 0.1939030851221809,
+      "per_class": {
+        "drink water": 0.2351118760757315,
+        "eat meal": 0.06272617611580217,
+        "sit down": 0.008960573476702509,
+        "stand up": 0.12965186074429771,
+        "reading": 0.06794055201698514,
+        "phone call": 0.1622222222222222,
+        "play with phone": 0.32653061224489793,
+        "type on keyboard": 0.5580808080808081
+      }
+    },
+    "geometric": {
+      "acc": 0.15212765957446808,
+      "mean_class_acc": 0.19150313862232504,
+      "per_class": {
+        "drink water": 0.23580034423407917,
+        "eat meal": 0.07720144752714113,
+        "sit down": 0.017921146953405017,
+        "stand up": 0.006002400960384154,
+        "reading": 0.07006369426751592,
+        "phone call": 0.13333333333333333,
+        "play with phone": 0.42857142857142855,
+        "type on keyboard": 0.5631313131313131
+      }
+    }
+  }
 }

@@ -169,8 +169,12 @@ def apply(x, vis, fill="zero", rng=None, jitter=0.05, L=NTU):
                     base = x[t, ctr].mean(0) + np.array([0.0, -0.4, 0.0]) * (j in L.lower)
                 x[t, j] = base + rng.normal(0, jitter, 3)
     rows = np.where(vis[:, ctr].all(1))[0]
+    part = np.where(vis[:, ctr].any(1))[0]
     if len(rows):
         c = x[rows[0], ctr].mean(0)
+    elif len(part):                     # e.g. one shoulder hidden (13-joint layout): use the visible one(s)
+        t = part[0]
+        c = x[t, [j for j in ctr if vis[t, j]]].mean(0)
     else:
         any_vis = vis.any(1)
         t0 = np.where(any_vis)[0][0] if any_vis.any() else 0
