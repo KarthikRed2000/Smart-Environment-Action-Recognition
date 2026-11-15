@@ -1,0 +1,16 @@
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+ & & \multicolumn{2}{c}{Kinect output} & \multicolumn{2}{c}{Untracked dropped} \\
+\cmidrule(lr){3-4}\cmidrule(l){5-6}
+Model & Train aug. & All & Heavy & All & Heavy \\
+\midrule
+Bi-LSTM & -- & 75.4 & 70.5 & 66.7 & 57.6 \\
+Bi-LSTM & geometric (ours) & 76.0 & 71.1 & 70.2 & 63.3 \\
+1D-CNN & -- & 77.9 & 72.6 & 67.1 & 55.7 \\
+1D-CNN & geometric (ours) & 78.5 & 73.4 & 74.0 & 67.2 \\
+ST-GCN & -- & \textbf{81.8} & \textbf{78.7} & 70.3 & 61.9 \\
+ST-GCN & rand. joint & 81.5 & 77.5 & \textbf{76.4} & \textbf{70.4} \\
+ST-GCN & lower-body & 80.1 & 75.2 & 69.6 & 61.9 \\
+ST-GCN & geometric (ours) & 81.3 & 77.4 & 76.4 & 70.2 \\
+\bottomrule
+\end{tabular}

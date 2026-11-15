@@ -1,0 +1,56 @@
+{
+  "n_all": 6043,
+  "n_heavy": 2139,
+  "untracked_mean": 0.1670136935297038,
+  "untracked_heavy": 0.2807564866760168,
+  "models": {
+    "bilstm_none": {
+      "kinect_all": 0.7535992056925368,
+      "kinect_heavy": 0.7045348293595138,
+      "dropped_all": 0.6665563461856694,
+      "dropped_heavy": 0.5755025712949977
+    },
+    "bilstm_geometric": {
+      "kinect_all": 0.7602184345523747,
+      "kinect_heavy": 0.7106124357176251,
+      "dropped_all": 0.7023001820287936,
+      "dropped_heavy": 0.6330060776063581
+    },
+    "cnn1d_none": {
+      "kinect_all": 0.7787522753599205,
+      "kinect_heavy": 0.7260402057035998,
+      "dropped_all": 0.6705278835015721,
+      "dropped_heavy": 0.5572697522206639
+    },
+    "cnn1d_geometric": {
+      "kinect_all": 0.7847095813337747,
+      "kinect_heavy": 0.7335203366058906,
+      "dropped_all": 0.7398643058083734,
+      "dropped_heavy": 0.6718092566619915
+    },
+    "stgcn_none": {
+      "kinect_all": 0.8184676485189475,
+      "kinect_heavy": 0.7872837774661057,
+      "dropped_all": 0.7029621049147774,
+      "dropped_heavy": 0.6185133239831697
+    },
+    "stgcn_random": {
+      "kinect_all": 0.8151580340890286,
+      "kinect_heavy": 0.7746610565684899,
+      "dropped_all": 0.7638590104252855,
+      "dropped_heavy": 0.7035998129967275
+    },
+    "stgcn_lowerbody": {
+      "kinect_all": 0.8010921727618733,
+      "kinect_heavy": 0.7522206638616176,
+      "dropped_all": 0.6955154724474599,
+      "dropped_heavy": 0.6194483403459561
+    },
+    "stgcn_geometric": {
+      "kinect_all": 0.8131722654310772,
+      "kinect_heavy": 0.7737260402057036,
+      "dropped_all": 0.7636935297037895,
+      "dropped_heavy": 0.7017297802711547
+    }
+  }
+}

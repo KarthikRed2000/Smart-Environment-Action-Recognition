@@ -1,0 +1,14 @@
+{
+  "n": 7520,
+  "classes": [
+    "drink water",
+    "eat meal",
+    "sit down",
+    "stand up",
+    "reading",
+    "phone call",
+    "play with phone",
+    "type on keyboard"
+  ],
+  "models": {}
+}

@@ -164,6 +164,65 @@ def test_real_data():
     test_training_step(d["X_train"][:32], d["y_train"][:32] % 4)
 
 
+def test_j13():
+    """13-joint (Toyota / shared) layout: masks, graph, models, training step."""
+    rng = np.random.default_rng(0)
+    L = occ.J13
+    x = fake_person()[:, occ.NTU_TO_J13]                     # NTU person mapped to 13 joints
+    check("j13: mapping gives 13 joints, head highest", x.shape == (64, 13, 3) and x[0, 12, 1] == x[0, :, 1].max())
+    check("j13 graph: 13 bones", int((ntu_graph(layout="j13")[1] > 0).sum()) == 13)
+    vis = occ.lower_body(x, L=L)
+    check("j13 lower_body hides 6 leg joints", (~vis).all(0).sum() == 6)
+    vis = occ.furniture(x, rng, top_rel=(1.0, 1.0), width=(3.0, 3.0), gap=(0.5, 0.5), L=L)
+    check("j13 furniture: ankles hidden, head visible", (~vis[:, list(L.feet)]).all() and vis[:, 12].all())
+    xb = fake_person(right_arm_behind=True)[:, occ.NTU_TO_J13]
+    vis = occ.self_occlusion(xb, L=L)
+    check("j13 self_occ: right wrist behind torso hidden", (~vis[:, 6]).all() and vis[:, 7].all())
+    z = occ.apply(x, np.ones((64, 13), bool), L=L)
+    check("j13 apply: centered on shoulder midpoint", np.allclose(z[0, [10, 11]].mean(0), 0, atol=1e-6))
+    for kind in ["none", "random", "lowerbody", "geometric"]:
+        v, f = occ.train_aug(kind, x, rng, L=L)
+        check(f"j13 train_aug {kind}: finite", v.shape == (64, 13) and np.isfinite(occ.apply(x, v, f, rng, L=L)).all())
+    for name, (fn, fill) in occ.tests(L).items():
+        check(f"j13 protocol {name}", fn(x, rng).shape == (64, 13))
+    X = np.stack([fake_person(seed=i)[:, occ.NTU_TO_J13] for i in range(16)])
+    y = np.arange(16) % 4
+    dl = torch.utils.data.DataLoader(TrainSet(X, y, "geometric", L=L), batch_size=8)
+    m = MODELS["stgcn"](4, V=13)
+    xb_, yb_ = next(iter(dl))
+    loss = nn.functional.cross_entropy(m(xb_), yb_)
+    loss.backward()
+    check("j13 ST-GCN train step finite", torch.isfinite(loss).item())
+    acc, f1, mc = evaluate(m, xb_.numpy(), yb_.numpy(), torch.device("cpu"), 4, mca=True)
+    check("evaluate mean-class acc in [0,1]", 0 <= mc <= 1)
+
+
+def test_toyota_and_transfer():
+    p = ROOT / "data/toyota_all.npz"
+    if not p.exists():
+        print("SKIP toyota (data/toyota_all.npz missing -- run python -m src.toyota)")
+        return
+    from src.toyota import load_cs, TO_NTU
+    from src.eval_transfer import toyota_transfer_set
+    from src.train import load_dataset
+    Xtr, ytr, Xte, yte, classes = load_cs()
+    check("toyota: 31 classes, CS split sizes", len(classes) == 31 and len(Xtr) > 9000 and len(Xte) > 4000)
+    check("toyota: camera depth ~3-4.5 m, y up (head above ankles)",
+          2.5 < np.median(Xtr[..., 2]) < 4.5 and (Xtr[:, :, 12, 1] > Xtr[:, :, 0, 1]).mean() > 0.95)
+    check("toyota: bone lengths plausible (thigh 0.3-0.55 m)",
+          0.3 < np.median(np.linalg.norm(Xtr[:, :, 2] - Xtr[:, :, 4], axis=-1)) < 0.55)
+    Xt, yt, targets = toyota_transfer_set()
+    check("transfer: 8 shared classes, all present", len(targets) == 8 and set(np.unique(yt)) == set(targets))
+    check("transfer: inputs finite, shape (N,3,64,13)", Xt.shape[1:] == (3, 64, 13) and np.isfinite(Xt).all())
+    a = load_dataset("ntu13")
+    check("ntu13: 13 joints, same clips as ntu", a[0].shape[1:] == (64, 13, 3) and a[4] is occ.J13)
+    rng = np.random.default_rng(0)
+    for name, (fn, fill) in occ.tests(occ.J13).items():
+        hid = [1 - fn(x, rng).mean() for x in Xte[:100]]
+        outs = [occ.apply(x, fn(x, rng), fill, rng, L=occ.J13) for x in Xte[:20]]
+        check(f"toyota protocol {name:16s} finite (hidden {100 * np.mean(hid):4.1f}%)", np.isfinite(np.stack(outs)).all())
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--real", action="store_true")
@@ -175,7 +234,9 @@ if __name__ == "__main__":
     test_apply()
     test_augs_and_tests()
     test_training_step()
+    test_j13()
     if a.real:
         test_real_data()
+        test_toyota_and_transfer()
     print(f"\n{sum(OK)}/{len(OK)} checks passed")
     sys.exit(0 if all(OK) else 1)

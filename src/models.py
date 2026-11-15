@@ -1,4 +1,4 @@
-"""ST-GCN (Yan et al., AAAI'18) plus Bi-LSTM and 1D-CNN baselines. Input: (N, C=3, T, V=25)."""
+"""ST-GCN (Yan et al., AAAI'18) plus Bi-LSTM and 1D-CNN baselines. Input: (N, C=3, T, V)."""
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,13 +7,19 @@ import torch.nn as nn
 _EDGES = [(1, 2), (2, 21), (3, 21), (4, 3), (5, 21), (6, 5), (7, 6), (8, 7), (9, 21), (10, 9),
           (11, 10), (12, 11), (13, 1), (14, 13), (15, 14), (16, 15), (17, 1), (18, 17),
           (19, 18), (20, 19), (22, 23), (23, 8), (24, 25), (25, 12)]
+# LCR-Net 13 joints (Toyota Smarthome), 1-indexed (child, parent), rooted at the head:
+# 1 RAnk 2 LAnk 3 RKnee 4 LKnee 5 RHip 6 LHip 7 RWri 8 LWri 9 RElb 10 LElb 11 RSho 12 LSho 13 Head
+_EDGES_J13 = [(1, 3), (2, 4), (3, 5), (4, 6), (5, 11), (6, 12), (5, 6), (7, 9), (8, 10),
+              (9, 11), (10, 12), (11, 13), (12, 13)]
+GRAPHS = {"ntu25": (25, _EDGES), "j13": (13, _EDGES_J13)}
 
 
-def ntu_graph(V=25):
+def ntu_graph(V=25, layout="ntu25"):
     """Spatial partitioning: self / inward (toward the center) / outward."""
+    V, edges = GRAPHS[layout]
     I = np.eye(V)
     inward = np.zeros((V, V))
-    for i, j in _EDGES:
+    for i, j in edges:
         inward[j - 1, i - 1] = 1          # child i -> parent j
     outward = inward.T
 
@@ -51,9 +57,11 @@ class STGCNBlock(nn.Module):
 
 
 class STGCN(nn.Module):
-    def __init__(self, num_class, in_c=3, V=25, dropout=0.1):
+    def __init__(self, num_class, in_c=3, V=25, dropout=0.1, layout=None):
         super().__init__()
-        A = ntu_graph(V)
+        layout = layout or ("ntu25" if V == 25 else "j13")
+        A = ntu_graph(layout=layout)
+        V = A.shape[1]
         self.data_bn = nn.BatchNorm1d(in_c * V)
         cfg = [(in_c, 64, 1, False), (64, 64, 1, True), (64, 64, 1, True), (64, 64, 1, True),
                (64, 128, 2, True), (128, 128, 1, True), (128, 128, 1, True),

@@ -20,6 +20,8 @@ def main():
     res = {}
     for f in (ROOT / "results").glob("*.json"):
         r = json.loads(f.read_text())
+        if "tests" not in r or r.get("dataset", "ntu") != "ntu":
+            continue                              # Toyota / NTU-13 results have their own table
         res[(r["model"], r["aug"])] = r
     if not res:
         print("no results yet")

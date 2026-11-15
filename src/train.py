@@ -1,7 +1,8 @@
 """Train one (model, augmentation) configuration and evaluate it on every occlusion test protocol.
 
-Example:  python -m src.train --model stgcn --aug geometric --epochs 30
-Writes results/<model>_<aug>.json and checkpoints/<model>_<aug>.pt
+Example:  python -m src.train --model stgcn --aug geometric --epochs 30 [--dataset toyota]
+Datasets: ntu (25 joints), ntu13 (NTU on the 13 joints shared with Toyota), toyota (cross-subject).
+Writes results/[<dataset>_]<model>_<aug>.json and checkpoints/ (no prefix for ntu).
 """
 import argparse
 import json
@@ -20,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TrainSet(Dataset):
-    def __init__(self, X, y, aug, seed=0):
-        self.X, self.y, self.aug = X, y, aug
+    def __init__(self, X, y, aug, seed=0, L=occ.NTU):
+        self.X, self.y, self.aug, self.L = X, y, aug, L
         self.rng = np.random.default_rng(seed)
 
     def __len__(self):
@@ -29,8 +30,8 @@ class TrainSet(Dataset):
 
     def __getitem__(self, i):
         x = self.X[i]
-        vis, fill = occ.train_aug(self.aug, x, self.rng)
-        x = occ.apply(x, vis, fill, self.rng)
+        vis, fill = occ.train_aug(self.aug, x, self.rng, L=self.L)
+        x = occ.apply(x, vis, fill, self.rng, L=self.L)
         # light geometric augmentation: random rotation about the vertical axis + scale
         th = self.rng.uniform(-np.pi / 12, np.pi / 12)
         R = np.array([[np.cos(th), 0, np.sin(th)], [0, 1, 0], [-np.sin(th), 0, np.cos(th)]], np.float32)
@@ -45,20 +46,20 @@ def seed_worker(worker_id):
     info.dataset.rng = np.random.default_rng(torch.initial_seed() % 2**32)
 
 
-def build_test_sets(X, seed=123):
+def build_test_sets(X, seed=123, L=occ.NTU, cache_name="test_sets.npz"):
     """Fixed, reproducible corrupted copies of the validation set (cached on disk)."""
-    cache = ROOT / "data/test_sets.npz"      # delete this file if occlusion.py changes
+    cache = ROOT / "data" / cache_name       # delete these files if occlusion.py changes
     if cache.exists():
         d = np.load(cache)
         return {k: d[k] for k in d.files if not k.startswith("visfrac_")}, \
                {k[8:]: float(d[k]) for k in d.files if k.startswith("visfrac_")}
     sets, frac = {}, {}
-    for name, (fn, fill) in occ.TESTS.items():
+    for name, (fn, fill) in occ.tests(L).items():
         rng = np.random.default_rng(seed)
         xs, hidden = [], []
         for x in X:
             vis = fn(x, rng)
-            xs.append(occ.apply(x, vis, fill, rng))
+            xs.append(occ.apply(x, vis, fill, rng, L=L))
             hidden.append(1 - vis.mean())
         sets[name] = np.stack(xs).transpose(0, 3, 1, 2).astype(np.float32)
         frac[name] = float(np.mean(hidden))
@@ -68,7 +69,8 @@ def build_test_sets(X, seed=123):
 
 
 @torch.no_grad()
-def evaluate(model, X, y, device, nc, bs=256):
+def evaluate(model, X, y, device, nc, bs=256, mca=False):
+    """Top-1 accuracy and macro-F1 (plus mean per-class accuracy if mca=True)."""
     model.eval()
     preds = []
     for i in range(0, len(X), bs):
@@ -81,7 +83,27 @@ def evaluate(model, X, y, device, nc, bs=256):
         fp = ((p == c) & (y != c)).sum()
         fn = ((p != c) & (y == c)).sum()
         f1s.append(2 * tp / max(2 * tp + fp + fn, 1))
-    return acc, float(np.mean(f1s))
+    if not mca:
+        return acc, float(np.mean(f1s))
+    present = [c for c in range(nc) if (y == c).any()]
+    mean_cls = float(np.mean([(p[y == c] == c).mean() for c in present]))
+    return acc, float(np.mean(f1s)), mean_cls
+
+
+def load_dataset(name):
+    """-> Xtr, ytr, Xva, yva, layout, test-set cache file name."""
+    if name in ("ntu", "ntu13"):
+        d = np.load(ROOT / "data/ntu_dom_xsub.npz")
+        Xtr, ytr, Xva, yva = d["X_train"], d["y_train"], d["X_val"], d["y_val"]
+        if name == "ntu":
+            return Xtr, ytr, Xva, yva, occ.NTU, "test_sets.npz"
+        j = occ.NTU_TO_J13
+        return Xtr[:, :, j], ytr, Xva[:, :, j], yva, occ.J13, "test_sets_ntu13.npz"
+    if name == "toyota":
+        from .toyota import load_cs
+        Xtr, ytr, Xva, yva, _ = load_cs()
+        return Xtr, ytr, Xva, yva, occ.J13, "test_sets_toyota.npz"
+    raise ValueError(name)
 
 
 def main():
@@ -93,29 +115,28 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--data", default=str(ROOT / "data/ntu_dom_xsub.npz"))
+    ap.add_argument("--dataset", default="ntu", choices=["ntu", "ntu13", "toyota"])
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available()
                           else "mps" if torch.backends.mps.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True
-    d = np.load(args.data)
-    Xtr, ytr, Xva, yva = d["X_train"], d["y_train"], d["X_val"], d["y_val"]
-    nc = int(ytr.max()) + 1
-    print(f"train {Xtr.shape} val {Xva.shape} classes {nc} device {device}")
-    tests, hidden = build_test_sets(Xva)
+    Xtr, ytr, Xva, yva, L, cache = load_dataset(args.dataset)
+    nc = int(max(ytr.max(), yva.max())) + 1
+    print(f"[{args.dataset}] train {Xtr.shape} val {Xva.shape} classes {nc} device {device}")
+    tests, hidden = build_test_sets(Xva, L=L, cache_name=cache)
 
-    dl = DataLoader(TrainSet(Xtr, ytr, args.aug, args.seed), batch_size=args.bs, shuffle=True,
+    dl = DataLoader(TrainSet(Xtr, ytr, args.aug, args.seed, L), batch_size=args.bs, shuffle=True,
                     num_workers=args.workers, persistent_workers=args.workers > 0, drop_last=True,
                     worker_init_fn=seed_worker)
-    model = MODELS[args.model](nc).to(device)
+    model = MODELS[args.model](nc, V=L.V).to(device)
     nparam = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, args.lr, total_steps=args.epochs * len(dl), pct_start=0.1)
     lossf = nn.CrossEntropyLoss(label_smoothing=0.1)
 
-    tag = f"{args.model}_{args.aug}"
+    tag = f"{args.model}_{args.aug}" if args.dataset == "ntu" else f"{args.dataset}_{args.model}_{args.aug}"
     for ep in range(args.epochs):
         model.train()
         t0, tot, n = time.time(), 0.0, 0
@@ -149,12 +170,12 @@ def main():
         sync()
     lat_ms = (time.time() - t0) / 50 * 1000
 
-    res = {"model": args.model, "aug": args.aug, "epochs": args.epochs, "params": nparam,
+    res = {"dataset": args.dataset, "model": args.model, "aug": args.aug, "epochs": args.epochs, "params": nparam,
            "latency_ms_bs1": lat_ms, "hidden_frac": hidden, "tests": {}}
     for name, X in tests.items():
-        acc, f1 = evaluate(model, X, yva, device, nc)
-        res["tests"][name] = {"acc": acc, "f1": f1}
-        print(f"  {name:16s} acc {100 * acc:5.1f}  F1 {100 * f1:5.1f}")
+        acc, f1, mcls = evaluate(model, X, yva, device, nc, mca=True)
+        res["tests"][name] = {"acc": acc, "f1": f1, "mean_class_acc": mcls}
+        print(f"  {name:16s} acc {100 * acc:5.1f}  F1 {100 * f1:5.1f}  mean-class {100 * mcls:5.1f}")
     (ROOT / "results").mkdir(exist_ok=True)
     (ROOT / "checkpoints").mkdir(exist_ok=True)
     (ROOT / f"results/{tag}.json").write_text(json.dumps(res, indent=2))
