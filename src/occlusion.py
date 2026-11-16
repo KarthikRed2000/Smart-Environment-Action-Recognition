@@ -185,6 +185,37 @@ def apply(x, vis, fill="zero", rng=None, jitter=0.05, L=NTU):
     return x.astype(np.float32)
 
 
+def harmonize(X, L=J13, torso=0.5, cam=3.5):
+    """Cross-dataset skeleton harmonization (13-joint layout), for transfer experiments.
+
+    X: (N,T,V,3) raw. Every frame is translated so the hip midpoint is at the origin (Toyota's
+    LCR-Net poses are root-centered per frame, so global body motion is absent there), the clip
+    is scaled so its median shoulder-mid -> hip-mid length is `torso` m, and a virtual camera is
+    placed `cam` m away (z += cam) so the camera-ray occlusion code still applies.
+    Missing joints (all-zero) stay zero.
+    """
+    X = np.asarray(X, np.float32).copy()
+    ok = np.abs(X).sum(-1) > 0                                         # (N,T,V)
+    hips, sho = list(L.hips), list(L.center)
+    out = np.zeros_like(X)
+    for n in range(len(X)):
+        hv = ok[n][:, hips].all(1)
+        if not hv.any():
+            continue
+        pel = X[n][:, hips].mean(1)                                     # (T,3)
+        idx = np.where(hv)[0]                                           # nearest valid frame for gaps
+        near = idx[np.abs(np.arange(len(pel))[:, None] - idx[None]).argmin(1)]
+        pel = pel[near]
+        sv = hv & ok[n][:, sho].all(1)
+        tl = np.linalg.norm(X[n][sv][:, sho].mean(1) - X[n][sv][:, hips].mean(1), axis=-1) if sv.any() else []
+        s = torso / np.median(tl) if len(tl) and np.median(tl) > 1e-3 else 1.0
+        y = (X[n] - pel[:, None]) * s
+        y[..., 2] += cam
+        y[~ok[n]] = 0.0
+        out[n] = y
+    return out
+
+
 # ----------------------------------------------------------------- training-time augmentations
 def train_aug(kind, x, rng, p=0.6, L=NTU):
     """Return (vis, fill) for one training sample."""
@@ -203,6 +234,19 @@ def train_aug(kind, x, rng, p=0.6, L=NTU):
             vis = self_occlusion(x, L=L)
         else:
             vis = furniture(x, rng, window_p=0.3, L=L) & self_occlusion(x, L=L)
+        return vis, ("noisy" if rng.random() < 0.5 else "zero")
+    if kind == "combined":                                   # geometric + sparse random dropout
+        r = rng.random()                                     # (no arm / temporal masks: those stay unseen)
+        if r < 0.35:
+            vis = furniture(x, rng, window_p=0.3, L=L)
+        elif r < 0.55:
+            vis = self_occlusion(x, L=L)
+        elif r < 0.75:
+            vis = furniture(x, rng, window_p=0.3, L=L) & self_occlusion(x, L=L)
+        else:
+            vis = full.copy()
+        if r >= 0.75 or rng.random() < 0.5:                 # sensor-style dropout on top
+            vis &= random_joints(x, rng, p=rng.uniform(0.05, 0.3), L=L)
         return vis, ("noisy" if rng.random() < 0.5 else "zero")
     raise ValueError(kind)
 

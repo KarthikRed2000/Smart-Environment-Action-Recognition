@@ -15,15 +15,18 @@ import numpy as np
 import torch
 
 from . import occlusion as occ
+from . import seeds as S
 from .models import MODELS
 from .train import evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
 HEAVY = 0.20
 ORDER = [("bilstm", "none"), ("bilstm", "geometric"), ("cnn1d", "none"), ("cnn1d", "geometric"),
-         ("stgcn", "none"), ("stgcn", "random"), ("stgcn", "lowerbody"), ("stgcn", "geometric")]
+         ("stgcn", "none"), ("stgcn", "random"), ("stgcn", "lowerbody"), ("stgcn", "geometric"),
+         ("stgcn", "combined")]
 NAME = {"bilstm": "Bi-LSTM", "cnn1d": "1D-CNN", "stgcn": "ST-GCN"}
-AUG = {"none": "--", "random": "rand. joint", "lowerbody": "lower-body", "geometric": "geometric (ours)"}
+AUG = {"none": "--", "random": "rand. joint", "lowerbody": "lower-body", "geometric": "geometric (ours)",
+       "combined": "combined (ours)"}
 
 
 def make_inputs(X, track):
@@ -57,31 +60,37 @@ def main():
            "models": {}}
     rows = []
     for m, aug in ORDER:
-        ck = Path(a.ckpt_dir) / f"{m}_{aug}.pt"
-        if not ck.exists():
-            print("missing", ck)
+        cks = S.ckpts(f"{m}_{aug}", a.ckpt_dir)
+        if not cks:
+            print("missing", m, aug)
             continue
-        model = MODELS[m](nc).to(device)
-        model.load_state_dict(torch.load(ck, map_location=device))
-        r = {}
-        for view, Xin in [("kinect", kin), ("dropped", drop)]:
-            r[f"{view}_all"] = evaluate(model, Xin, y, device, nc)[0]
-            r[f"{view}_heavy"] = evaluate(model, Xin[heavy], y[heavy], device, nc)[0] if heavy.any() else float("nan")
-        res["models"][f"{m}_{aug}"] = r
+        per_seed = []
+        for tag, ck in cks:
+            model = MODELS[m](nc).to(device)
+            model.load_state_dict(torch.load(ck, map_location=device))
+            r = {}
+            for view, Xin in [("kinect", kin), ("dropped", drop)]:
+                r[f"{view}_all"] = evaluate(model, Xin, y, device, nc)[0]
+                r[f"{view}_heavy"] = evaluate(model, Xin[heavy], y[heavy], device, nc)[0] if heavy.any() else float("nan")
+            per_seed.append(r)
+        r = {k: [x[k] for x in per_seed] for k in per_seed[0]}         # metric -> list over seeds
+        res["models"][f"{m}_{aug}"] = {**{k: S.ms(v)[0] for k, v in r.items()},
+                                       **{k + "_std": S.ms(v)[1] for k, v in r.items()}, "n_seeds": len(per_seed)}
         rows.append((m, aug, r))
-        print(f"{NAME[m]:8s} {aug:10s} " + "  ".join(f"{k} {100 * v:5.1f}" for k, v in r.items()))
+        print(f"{NAME[m]:8s} {aug:10s} ({len(per_seed)} seeds) " +
+              "  ".join(f"{k} {S.fmt(v).replace(S.PM, '±')}" for k, v in r.items()))
 
     out = Path(a.out)
     out.mkdir(exist_ok=True)
     (out / "natural.json").write_text(json.dumps(res, indent=2))
     cols = ["kinect_all", "kinect_heavy", "dropped_all", "dropped_heavy"]
-    best = {c: max(r[c] for _, _, r in rows) for c in cols}
+    best = {c: max(S.ms(r[c])[0] for _, _, r in rows) for c in cols}
     L = [r"\begin{tabular}{@{}llcccc@{}}", r"\toprule",
          r" & & \multicolumn{2}{c}{Kinect output} & \multicolumn{2}{c}{Untracked dropped} \\",
          r"\cmidrule(lr){3-4}\cmidrule(l){5-6}",
          f"Model & Train aug. & All & Heavy & All & Heavy \\\\", r"\midrule"]
     for m, aug, r in rows:
-        cells = [(r"\textbf{%.1f}" if abs(r[c] - best[c]) < 1e-9 else "%.1f") % (100 * r[c]) for c in cols]
+        cells = [(r"\textbf{%s}" if abs(S.ms(r[c])[0] - best[c]) < 1e-9 else "%s") % S.fmt(r[c]) for c in cols]
         L.append(f"{NAME[m]} & {AUG[aug]} & " + " & ".join(cells) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}"]
     (out / "natural_table.tex").write_text("\n".join(L) + "\n")

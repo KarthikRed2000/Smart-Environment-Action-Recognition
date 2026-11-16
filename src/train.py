@@ -1,7 +1,8 @@
 """Train one (model, augmentation) configuration and evaluate it on every occlusion test protocol.
 
 Example:  python -m src.train --model stgcn --aug geometric --epochs 30 [--dataset toyota]
-Datasets: ntu (25 joints), ntu13 (NTU on the 13 joints shared with Toyota), toyota (cross-subject).
+Datasets: ntu (25 joints), ntu13 (NTU on the 13 joints shared with Toyota), ntu13h (ntu13 harmonized
+per frame, see occlusion.harmonize), toyota (cross-subject). --seed N>0 appends _sN to the output names.
 Writes results/[<dataset>_]<model>_<aug>.json and checkpoints/ (no prefix for ntu).
 """
 import argparse
@@ -99,6 +100,9 @@ def load_dataset(name):
             return Xtr, ytr, Xva, yva, occ.NTU, "test_sets.npz"
         j = occ.NTU_TO_J13
         return Xtr[:, :, j], ytr, Xva[:, :, j], yva, occ.J13, "test_sets_ntu13.npz"
+    if name == "ntu13h":                       # 13 joints + per-frame root centering / scale (for transfer)
+        Xtr, ytr, Xva, yva, L, _ = load_dataset("ntu13")
+        return occ.harmonize(Xtr), ytr, occ.harmonize(Xva), yva, L, "test_sets_ntu13h.npz"
     if name == "toyota":
         from .toyota import load_cs
         Xtr, ytr, Xva, yva, _ = load_cs()
@@ -109,16 +113,17 @@ def load_dataset(name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="stgcn", choices=list(MODELS))
-    ap.add_argument("--aug", default="none", choices=["none", "random", "lowerbody", "geometric"])
+    ap.add_argument("--aug", default="none", choices=["none", "random", "lowerbody", "geometric", "combined"])
     ap.add_argument("--epochs", type=int, default=30)
     ap.add_argument("--bs", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--dataset", default="ntu", choices=["ntu", "ntu13", "toyota"])
+    ap.add_argument("--dataset", default="ntu", choices=["ntu", "ntu13", "ntu13h", "toyota"])
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available()
                           else "mps" if torch.backends.mps.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True
@@ -137,6 +142,7 @@ def main():
     lossf = nn.CrossEntropyLoss(label_smoothing=0.1)
 
     tag = f"{args.model}_{args.aug}" if args.dataset == "ntu" else f"{args.dataset}_{args.model}_{args.aug}"
+    tag += f"_s{args.seed}" if args.seed else ""             # seed 0 keeps the original file names
     for ep in range(args.epochs):
         model.train()
         t0, tot, n = time.time(), 0.0, 0
@@ -170,7 +176,7 @@ def main():
         sync()
     lat_ms = (time.time() - t0) / 50 * 1000
 
-    res = {"dataset": args.dataset, "model": args.model, "aug": args.aug, "epochs": args.epochs, "params": nparam,
+    res = {"dataset": args.dataset, "model": args.model, "aug": args.aug, "seed": args.seed, "epochs": args.epochs, "params": nparam,
            "latency_ms_bs1": lat_ms, "hidden_frac": hidden, "tests": {}}
     for name, X in tests.items():
         acc, f1, mcls = evaluate(model, X, yva, device, nc, mca=True)

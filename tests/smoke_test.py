@@ -108,7 +108,7 @@ def test_apply():
 def test_augs_and_tests():
     rng = np.random.default_rng(0)
     xs = [fake_person(seed=i) for i in range(8)]
-    for kind in ["none", "random", "lowerbody", "geometric"]:
+    for kind in ["none", "random", "lowerbody", "geometric", "combined"]:
         out = [occ.apply(x, *occ.train_aug(kind, x, rng)[:1], occ.train_aug(kind, x, rng)[1], rng) for x in xs]
         check(f"train_aug {kind}: finite, shape", all(np.isfinite(o).all() and o.shape == (64, 25, 3) for o in out))
     for name, (fn, fill) in occ.TESTS.items():
@@ -180,7 +180,7 @@ def test_j13():
     check("j13 self_occ: right wrist behind torso hidden", (~vis[:, 6]).all() and vis[:, 7].all())
     z = occ.apply(x, np.ones((64, 13), bool), L=L)
     check("j13 apply: centered on shoulder midpoint", np.allclose(z[0, [10, 11]].mean(0), 0, atol=1e-6))
-    for kind in ["none", "random", "lowerbody", "geometric"]:
+    for kind in ["none", "random", "lowerbody", "geometric", "combined"]:
         v, f = occ.train_aug(kind, x, rng, L=L)
         check(f"j13 train_aug {kind}: finite", v.shape == (64, 13) and np.isfinite(occ.apply(x, v, f, rng, L=L)).all())
     for name, (fn, fill) in occ.tests(L).items():
@@ -195,6 +195,22 @@ def test_j13():
     check("j13 ST-GCN train step finite", torch.isfinite(loss).item())
     acc, f1, mc = evaluate(m, xb_.numpy(), yb_.numpy(), torch.device("cpu"), 4, mca=True)
     check("evaluate mean-class acc in [0,1]", 0 <= mc <= 1)
+    # one shoulder hidden (one_arm in the 13-joint layout): center on the visible shoulder
+    v = np.ones((64, 13), bool); v[:, list(L.l_arm)] = False
+    z = occ.apply(x, v, L=L)
+    check("j13 apply: one shoulder hidden -> centered on the other", np.allclose(z[0, 10], 0, atol=1e-6))
+    # combined aug hides joints more often than geometric alone
+    hg = np.mean([(~occ.train_aug("geometric", x, rng, L=L)[0]).mean() for _ in range(200)])
+    hc = np.mean([(~occ.train_aug("combined", x, rng, L=L)[0]).mean() for _ in range(200)])
+    check(f"combined aug hides more than geometric ({100 * hc:.0f}% vs {100 * hg:.0f}%)", hc > hg)
+    # harmonize: per-frame root at origin (+cam depth), torso = 0.5 m, missing joints stay zero
+    Xh = X.copy(); Xh[0, 5, 3] = 0
+    H = occ.harmonize(Xh)
+    pel = H[:, :, list(L.hips)].mean(2)
+    tl = np.linalg.norm(H[:, :, list(L.center)].mean(2) - pel, axis=-1)
+    check("harmonize: root (0,0,3.5) every frame, torso 0.5", np.allclose(pel[..., :2], 0, atol=1e-5)
+          and np.allclose(pel[..., 2], 3.5, atol=1e-5) and abs(np.median(tl) - 0.5) < 1e-3)
+    check("harmonize: missing joints stay zero", np.all(H[0, 5, 3] == 0))
 
 
 def test_toyota_and_transfer():

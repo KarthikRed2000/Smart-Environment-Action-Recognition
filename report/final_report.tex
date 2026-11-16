@@ -1,0 +1,272 @@
+% CS771 final report -- CVPR 2027 author kit, camera-ready mode, 11pt.
+% Build (regenerates tables + figures from results/):  bash scripts/build_report.sh
+\documentclass[11pt,twocolumn,letterpaper]{article}
+\usepackage[T1]{fontenc}       % makes Times (from cvpr.sty) work under XeTeX/tectonic too
+\usepackage{cvpr}              % no [review] option => final / camera-ready version
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=*}
+\newcommand{\tbd}[1]{\textcolor{red}{#1}}
+
+\title{Where Occlusion Comes From: Geometric Occlusion Training for\\Skeleton-Based Action Recognition in Smart Homes}
+\author{Karthik Reddy Jannupalli \and Sanjana Kallingal \and Penchala Siva Prasanth Kasa\\
+University of Wisconsin--Madison}
+
+\begin{document}
+\maketitle
+
+%====================================================================
+\begin{abstract}
+Skeleton-based action recognition is attractive for smart homes because it is light-weight and privacy-preserving,
+but home cameras rarely see the whole body: furniture hides the legs and the body hides its own arms.
+Robustness is usually trained and tested with \emph{random} joint masking, which does not reflect how occlusion arises.
+We replace it with a \emph{geometric} occlusion model, where joints are hidden by ray casting against a virtual
+furniture occluder and by projection behind the person's own torso, and hidden joints are corrupted the way a sensor
+corrupts them. We test robustness on synthetic structured and held-out occlusions, on \emph{real} Kinect tracking failures in NTU RGB+D,
+and on \emph{real homes} (Toyota Smarthome).
+With ST-GCN, geometric training is the best or tied-best scheme on every structured occlusion and costs no clean accuracy.
+On Toyota Smarthome it keeps \tbd{X} of \tbd{Y} mean-class accuracy under furniture occlusion, where an unaugmented model falls to \tbd{22}.
+On real Kinect failures, geometric and random masking each give about $+6$ points, and combining them gives \tbd{...}.
+We also find that NTU$\rightarrow$Toyota zero-shot transfer is near chance unless both datasets use the same skeleton normalization.
+With harmonized normalization it reaches \tbd{...}.
+\end{abstract}
+
+%====================================================================
+\section{Introduction}
+Activity recognition in the home, such as detecting a fall, a missed meal or a change in routine, is a central task for ambient assisted living.
+3D skeletons from depth sensors~\cite{shotton2011kinect} or RGB pose estimators~\cite{rogez2019lcrnet} make it cheap and privacy-preserving.
+Graph networks such as ST-GCN~\cite{yan2018stgcn} recognize actions from them accurately.
+These models are usually trained on lab recordings in which the subject is fully visible.
+In a real apartment, a table or sofa hides the legs, a person seen from the side or back hides an arm behind the torso, and the sensor responds by guessing or dropping joints (Fig.~\ref{fig:occ}d).
+
+The usual answer is to mask random joints, or a fixed body part, during training and testing~\cite{song2020ragcn}.
+Our own proposal did the latter (lower-body dropout).
+The two problems with this are the starting point of this project.
+First, random masks do not reproduce the \emph{structure} of real occlusion, so they may teach the wrong invariance.
+Second, testing with the same random masks says little about real occlusion.
+
+\textbf{Contributions.}
+(1)~A geometric occlusion model with three parts: \emph{furniture} (ray casting against a floor-standing box), \emph{self-occlusion} (projection behind the torso) and sensor-style \emph{fill}. It is used as training augmentation and as a test protocol, for both 25-joint Kinect and 13-joint RGB skeletons.
+(2)~A four-level evaluation:
+(i)~synthetic structured occlusions plus held-out types that no training scheme sees;
+(ii)~\emph{real} occlusion from Kinect tracking states on 6{,}043 NTU RGB+D test clips;
+(iii)~\emph{real homes}, Toyota Smarthome cross-subject;
+(iv)~zero-shot transfer from the lab (NTU) to homes (Toyota).
+(3)~Findings, with 3 seeds, on which assumptions about occlusion transfer to real data and which do not (Sec.~\ref{sec:disc}).
+
+%====================================================================
+\section{Related Work}
+\textbf{Skeleton action recognition.}
+ST-GCN~\cite{yan2018stgcn} models the skeleton as a spatio-temporal graph with partitioned graph convolutions.
+Later work learns adaptive topologies~\cite{shi2019agcn,chen2021ctrgcn}, and PYSKL~\cite{duan2022pyskl} standardizes training practice.
+We use ST-GCN as a representative backbone and keep the backbone fixed, since our question concerns the training signal.
+
+\textbf{Robustness to occlusion.}
+RA-GCN~\cite{song2020ragcn} evaluates robustness to dropped body parts and frames and trains extra streams to use non-occluded joints.
+Masking-based augmentation is the skeleton analogue of Cutout~\cite{devries2017cutout}.
+These approaches remove joints at random or by fixed part, independent of the scene.
+Our occlusion model instead derives masks from scene and body geometry, in the spirit of domain randomization~\cite{tobin2017domain}: the occluder is randomized, but its physics is not.
+
+\textbf{Datasets.}
+NTU RGB+D~\cite{shahroudy2016ntu} is the standard lab benchmark recorded with Kinect v2.
+Toyota Smarthome~\cite{das2019toyota} contains unscripted daily activities of 18 seniors in an apartment, with 7 camera views and heavy furniture occlusion.
+Its skeletons come from LCR-Net~\cite{rogez2019lcrnet} applied to RGB.
+
+%====================================================================
+\section{Method}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_occlusion.pdf}
+\caption{Occlusion on NTU test frames, drawn in the camera image.
+(a)~The proposal's lower-body dropout always removes the same eight leg joints.
+(b)~Our furniture occluder (brown) hides exactly the joints whose camera ray hits it.
+(c)~Our self-occlusion hides the hands behind the torso of a subject facing away.
+(d)~A real Kinect frame: untracked joints (red) are mostly hands, wrists and feet, and their reported positions are sensor guesses.}
+\label{fig:occ}
+\end{figure*}
+
+\textbf{Input.} A clip is $X\in\mathbb{R}^{T\times V\times 3}$ (camera coordinates, $y$ up, $z$ depth), resampled to $T{=}64$ frames.
+A visibility mask $M\in\{0,1\}^{T\times V}$ marks occluded joints.
+The clip is translated so the center joint(s) (spine-shoulder for NTU, shoulder midpoint for 13 joints) of the first frame where they are \emph{visible} lie at the origin.
+Normalization therefore never uses hidden joints. If only one shoulder is visible, it alone is used.
+
+\subsection{Geometric occlusion model}
+\textbf{Furniture.}
+A box stands on the floor between the camera and the person.
+Its front face is the plane $z{=}z_o$, at a random gap of 0.25--0.9\,m in front of the torso.
+Its top $y_t$ lies at a random fraction (0.3--1.2) of the foot-to-hip height, and it has a random width (0.35--1.2\,m) and lateral offset.
+A joint $p=(x,y,z)$ is hidden when its camera ray crosses the face:
+\begin{equation}
+z>z_o,\quad y\,\tfrac{z_o}{z}<y_t,\quad \bigl|x\,\tfrac{z_o}{z}-x_c\bigr|<\tfrac{w}{2}.
+\end{equation}
+Because the box is fixed in space, the mask changes as the person moves (\eg standing up from behind a table).
+With probability 0.3 the occluder is present for only part of the clip.
+
+\textbf{Self-occlusion.}
+In each frame the torso quadrilateral (shoulders, hips) is projected to normalized image coordinates $(x/z,\,y/z)$ and widened by a body half-thickness of 12\,cm.
+A limb joint is hidden if its projection falls inside the torso and it lies more than 4\,cm behind the torso.
+This captures arms behind the back, and side and back views, without any learned component.
+
+\textbf{Fill.}
+Real sensors rarely output zeros: Kinect reports \emph{inferred} guesses (Fig.~\ref{fig:occ}d).
+Hidden joints are therefore either zeroed or held at their last observed position plus 5\,cm Gaussian jitter (``noisy'').
+
+\subsection{Training schemes}
+With probability 0.6 per sample, the following are applied:
+\begin{itemize}
+\item \emph{random}: each joint-frame dropped i.i.d.\ with rate $\mathcal{U}(0.1,0.4)$;
+\item \emph{lower-body} (our proposal): all leg joints dropped;
+\item \emph{geometric} (ours): furniture (45\%), self-occlusion (25\%), or both (30\%), with zero or noisy fill (50/50);
+\item \emph{combined} (ours): geometric masks (75\%), plus sparse sensor-style random dropout ($\mathcal{U}(0.05,0.3)$) on half of those samples and on every remaining sample.
+\end{itemize}
+None of the schemes ever removes a whole arm or whole frames.
+Those two test protocols are therefore held out for all of them.
+
+\subsection{Models and cross-dataset harmonization}
+\textbf{Backbones.} ST-GCN~\cite{yan2018stgcn} has 10 blocks, spatial partitioning and learnable edge importance (3.1M parameters).
+The baselines are a 2-layer Bi-LSTM~\cite{hochreiter1997lstm} (2.3M) and a 1D temporal CNN (1.0M) over flattened joints.
+For Toyota we build the 13-joint LCR-Net graph and map NTU joints to it.
+
+\textbf{Harmonization for transfer.}
+LCR-Net poses are root-centered \emph{in every frame}, so they contain no global body motion.
+NTU skeletons are in camera space, so standing up or sitting down shows up as a large pelvis trajectory.
+For transfer we therefore harmonize both datasets the same way.
+Each frame is translated so the hip midpoint is at the origin, each clip is scaled to a median torso length of 0.5\,m, and a virtual camera is placed 3.5\,m away so the occlusion code still applies.
+
+%====================================================================
+\section{Experiments}
+\subsection{Setup}
+\textbf{NTU-Dom.} We use 22 single-person domestic classes of NTU-60, such as drink, eat, read, write, type, phone call, sit down, stand up, put on a shoe and fall.
+The split is cross-subject, with 14{,}690 train and 6{,}038 test clips (PYSKL release~\cite{duan2022pyskl}).
+
+\textbf{NTU-Real.} The same test subjects and classes come from the official raw \texttt{.skeleton} files, 6{,}043 clips, with per-joint Kinect tracking states.
+On average 16.7\% of joint-frames are not tracked.
+2{,}139 \emph{heavy} clips have $\geq$20\% untracked, 28.1\% on average.
+We test two views: \emph{Kinect}, the coordinates exactly as reported (inferred joints are sensor guesses), and \emph{dropped}, where untracked joints are zeroed as a confidence filter would do.
+
+\textbf{Toyota Smarthome.} We use the trimmed set with LCR-Net 3D skeletons, 16{,}010 usable clips in 31 classes, and the official cross-subject protocol (10{,}609 / 5{,}401 clips).
+We report mean per-class accuracy, the standard metric given its long-tailed classes.
+
+\textbf{Training.} All models are trained for 30 epochs with AdamW~\cite{loshchilov2019adamw} (learning rate $10^{-3}$, weight decay $10^{-4}$), a one-cycle schedule, batch size 64, label smoothing 0.1, and random rotation about the vertical axis ($\pm15^\circ$) and scaling (0.9--1.1).
+ST-GCN results are the mean$\pm$std over 3 seeds; baselines use one seed.
+Synthetic test masks are fixed (seed 123), so every model sees identical corrupted test sets.
+Training used one NVIDIA L4 (GCP); test-time latency is 5.4\,ms per clip at batch size 1.
+
+\subsection{Synthetic occlusion on NTU}
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.2pt}
+\input{tables/ntu_table.tex}
+\caption{Top-1 accuracy (\%) on NTU-Dom (cross-subject, 6{,}038 test clips). ST-GCN rows: mean$\pm$std over 3 seeds; baselines: 1 seed.
+``Furn.+N'': hidden joints hold their last observed position plus jitter instead of zero.
+$^\dagger$Never seen in training by any scheme. $^\ddagger$Matches the training masks of the random-joint scheme only.}
+\label{tab:ntu}
+\end{table*}
+
+Tab.~\ref{tab:ntu} shows three patterns.
+(1)~\emph{Geometric training is best or tied-best on every structured occlusion} and costs at most a few tenths of a point clean.
+It also helps the backbones that are not graph-based: under furniture occlusion the 1D-CNN gains $+29.6$ and the Bi-LSTM $+18.8$.
+(2)~\emph{The proposal's lower-body dropout only helps on its own test}.
+On furniture occlusion, which hides the legs in a realistic way, it gains less than one point, because real occluders hide a \emph{varying, partial} set of joints rather than a fixed cluster.
+(3)~\emph{Random masking is a specialist}: it wins only on random masks and hurts temporal occlusion.
+\tbd{Combined: ...}.
+Zero fill is much harder than noisy fill for unaugmented models (1D-CNN 47.8 vs.\ 67.1), so conclusions about robustness depend on how the missing joints are simulated.
+
+\subsection{Real occlusion: Kinect tracking failures}
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\input{tables/natural_table.tex}
+\caption{Top-1 accuracy (\%) on NTU-Real (6{,}043 clips; \emph{heavy}: 2{,}139 clips with $\geq$20\% untracked joints).
+\emph{Kinect}: raw sensor output. \emph{Dropped}: untracked joints zeroed. ST-GCN: mean$\pm$std over 3 seeds.}
+\label{tab:real}
+\end{table}
+
+Real Kinect failures are concentrated on the hands (51--54\% of hand joint-frames untracked), wrists (36\%) and elbows (22\%), and much less on the legs.
+This is the opposite of our proposal's assumption.
+Tab.~\ref{tab:real} shows that on raw sensor output every model is within about one point of the others: the sensor's guesses are good enough that augmentation does not matter.
+Once untracked joints are removed, as a confidence filter would do, accuracy drops sharply without augmentation (ST-GCN heavy: 78.7$\rightarrow$61.9).
+Geometric and random training each recover about $+8$ points.
+Lower-body dropout recovers nothing.
+\tbd{Combined: ...}
+
+\subsection{Real homes: Toyota Smarthome}
+\begin{table*}[t]
+\centering\footnotesize
+\input{tables/toyota_table.tex}
+\caption{Toyota Smarthome cross-subject (31 classes, 5{,}401 test clips), ST-GCN, mean$\pm$std over 3 seeds.
+``Real test'' is the unmodified test set. The other columns add a simulated occlusion on top of the real one.
+$^\dagger$Held out from all training schemes.}
+\label{tab:toyota}
+\end{table*}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_toyota.pdf}
+\caption{Toyota Smarthome mean-class accuracy under added occlusion (mean$\pm$std, 3 seeds).}
+\label{fig:toyota}
+\end{figure}
+
+On the real Toyota test set (Tab.~\ref{tab:toyota}, Fig.~\ref{fig:toyota}), every augmentation keeps clean accuracy (about 53 mean-class, 74 top-1).
+The test set already contains real occlusion, so none of them is a free win.
+Under additional furniture occlusion the unaugmented model collapses (\tbd{53$\rightarrow$22}).
+Geometric training keeps \tbd{50.7}, lower-body \tbd{41.6} and random \tbd{30.8}.
+Under self-occlusion and temporal blocks, geometric is again best.
+Random masking remains a specialist for random masks.
+\tbd{Combined: ...}
+
+\subsection{Lab-to-home transfer}
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\input{tables/transfer_table.tex}
+\caption{Zero-shot NTU$\rightarrow$Toyota on the 8 shared classes (7{,}520 Toyota clips; chance 12.5\%).
+Models are trained on NTU (13 joints); logits are restricted to the shared classes.}
+\label{tab:transfer}
+\end{table}
+
+We train on NTU with the 13 shared joints and test on all Toyota clips of 8 shared classes (drink, eat, sit down, stand up, read, phone call, laptop$\rightarrow$type, tablet$\rightarrow$phone).
+With raw inputs, transfer is near chance for every scheme (Tab.~\ref{tab:transfer}).
+Sit down and stand up are almost never recognized (0--13\%) because the NTU models depend on the global pelvis trajectory, which LCR-Net poses lack.
+Harmonized normalization \tbd{...}.
+Occlusion augmentation does not close the gap, because it is not the dominant one: the differences in pose source (Kinect depth vs.\ monocular RGB), viewpoint and scale matter more.
+
+%====================================================================
+\section{Discussion}\label{sec:disc}
+\textbf{What transferred to real data.}
+(i)~Masking a \emph{fixed} part (our proposal) does not transfer. It helps only on its own test, and real occlusion affects other parts, mostly the hands on Kinect.
+(ii)~Geometric occlusion gives the most robust model on structured occlusion in both the lab and real homes. On real Kinect failures it ties random masking.
+(iii)~Combining both \tbd{...}.
+
+\textbf{What the simulation gets wrong.}
+Kinect loses hands mostly through tracking failure at the extremities, not through being hidden behind the torso.
+A third realistic source, \emph{extremity dropout}, is not modeled geometrically.
+This is why the random component in the combined scheme helps on NTU-Real.
+How missing joints are filled matters as much as which joints go missing.
+
+\textbf{Limitations.}
+Toyota occlusion results add simulation on top of real data, since Toyota provides no visibility labels.
+The transfer study covers only 8 classes and one backbone.
+We did not evaluate the cross-view protocols.
+Deployment from RGB keypoints (MediaPipe~\cite{lugaresi2019mediapipe}) and edge-hardware latency, both planned in the proposal, were not pursued.
+
+\section{Conclusion}
+Occlusion robustness for home action recognition is better trained by modeling \emph{where occlusion comes from} than by masking joints at random or by fixed parts.
+A cheap geometric model of furniture and self-occlusion transfers to real occlusion in real homes and does not cost clean accuracy.
+Evaluating on real failures shows which assumptions hold: lower-body dropout does not, and sensor dropout of the extremities matters.
+Code: \url{https://github.com/KarthikRed2000/Smart-Environment-Action-Recognition}.
+
+\paragraph{Acknowledgements.}
+(Portions of) the research in this paper used the NTU RGB+D Action Recognition Dataset made available by the ROSE Lab at the Nanyang Technological University, Singapore.
+We use the Toyota Smarthome dataset~\cite{das2019toyota}, provided by Toyota Motor Europe and Inria.
+Compute was provided through Google Cloud Platform.
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{refs}
+}
+\end{document}
