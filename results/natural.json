@@ -8,49 +8,100 @@
       "kinect_all": 0.7535992056925368,
       "kinect_heavy": 0.7045348293595138,
       "dropped_all": 0.6665563461856694,
-      "dropped_heavy": 0.5755025712949977
+      "dropped_heavy": 0.5755025712949977,
+      "kinect_all_std": 0.0,
+      "kinect_heavy_std": 0.0,
+      "dropped_all_std": 0.0,
+      "dropped_heavy_std": 0.0,
+      "n_seeds": 1
     },
     "bilstm_geometric": {
       "kinect_all": 0.7602184345523747,
       "kinect_heavy": 0.7106124357176251,
       "dropped_all": 0.7023001820287936,
-      "dropped_heavy": 0.6330060776063581
+      "dropped_heavy": 0.6330060776063581,
+      "kinect_all_std": 0.0,
+      "kinect_heavy_std": 0.0,
+      "dropped_all_std": 0.0,
+      "dropped_heavy_std": 0.0,
+      "n_seeds": 1
     },
     "cnn1d_none": {
       "kinect_all": 0.7787522753599205,
       "kinect_heavy": 0.7260402057035998,
       "dropped_all": 0.6705278835015721,
-      "dropped_heavy": 0.5572697522206639
+      "dropped_heavy": 0.5572697522206639,
+      "kinect_all_std": 0.0,
+      "kinect_heavy_std": 0.0,
+      "dropped_all_std": 0.0,
+      "dropped_heavy_std": 0.0,
+      "n_seeds": 1
     },
     "cnn1d_geometric": {
       "kinect_all": 0.7847095813337747,
       "kinect_heavy": 0.7335203366058906,
-      "dropped_all": 0.7398643058083734,
-      "dropped_heavy": 0.6718092566619915
+      "dropped_all": 0.7400297865298693,
+      "dropped_heavy": 0.6718092566619915,
+      "kinect_all_std": 0.0,
+      "kinect_heavy_std": 0.0,
+      "dropped_all_std": 0.0,
+      "dropped_heavy_std": 0.0,
+      "n_seeds": 1
     },
     "stgcn_none": {
-      "kinect_all": 0.8184676485189475,
-      "kinect_heavy": 0.7872837774661057,
-      "dropped_all": 0.7029621049147774,
-      "dropped_heavy": 0.6185133239831697
+      "kinect_all": 0.814937393127034,
+      "kinect_heavy": 0.7796478105033504,
+      "dropped_all": 0.7009211760163274,
+      "dropped_heavy": 0.6208508648901355,
+      "kinect_all_std": 0.004598855832554434,
+      "kinect_heavy_std": 0.009021010215618712,
+      "dropped_all_std": 0.026288180818667416,
+      "dropped_heavy_std": 0.03395474297880774,
+      "n_seeds": 3
     },
     "stgcn_random": {
-      "kinect_all": 0.8151580340890286,
-      "kinect_heavy": 0.7746610565684899,
-      "dropped_all": 0.7638590104252855,
-      "dropped_heavy": 0.7035998129967275
+      "kinect_all": 0.809917811241657,
+      "kinect_heavy": 0.7732585320243105,
+      "dropped_all": 0.7616526008053395,
+      "dropped_heavy": 0.6959638460339722,
+      "kinect_all_std": 0.006545036238599473,
+      "kinect_heavy_std": 0.007808926175077154,
+      "dropped_all_std": 0.004707725366727725,
+      "dropped_heavy_std": 0.016570730600012212,
+      "n_seeds": 3
     },
     "stgcn_lowerbody": {
-      "kinect_all": 0.8010921727618733,
-      "kinect_heavy": 0.7522206638616176,
-      "dropped_all": 0.6955154724474599,
-      "dropped_heavy": 0.6194483403459561
+      "kinect_all": 0.8015886149263611,
+      "kinect_heavy": 0.7558048932522986,
+      "dropped_all": 0.7027414639527828,
+      "dropped_heavy": 0.6295776842761415,
+      "kinect_all_std": 0.00211271642144696,
+      "kinect_heavy_std": 0.0033167830222522675,
+      "dropped_all_std": 0.00836018911993963,
+      "dropped_heavy_std": 0.016741319362869482,
+      "n_seeds": 3
     },
     "stgcn_geometric": {
-      "kinect_all": 0.8131722654310772,
-      "kinect_heavy": 0.7737260402057036,
-      "dropped_all": 0.7636935297037895,
-      "dropped_heavy": 0.7017297802711547
+      "kinect_all": 0.8142203100005516,
+      "kinect_heavy": 0.7776219417173134,
+      "dropped_all": 0.7662309007667275,
+      "dropped_heavy": 0.7126383045036621,
+      "kinect_all_std": 0.0016740019753426934,
+      "kinect_heavy_std": 0.0035706527154089553,
+      "dropped_all_std": 0.0026597304763067106,
+      "dropped_heavy_std": 0.010725552007211966,
+      "n_seeds": 3
+    },
+    "stgcn_combined": {
+      "kinect_all": 0.809917811241657,
+      "kinect_heavy": 0.7743493844475612,
+      "dropped_all": 0.7712504826521043,
+      "dropped_heavy": 0.7210534517687393,
+      "kinect_all_std": 0.0003444755915052312,
+      "kinect_heavy_std": 0.00392075599981579,
+      "dropped_all_std": 0.006159203420909202,
+      "dropped_heavy_std": 0.004612326191974015,
+      "n_seeds": 3
     }
   }
 }

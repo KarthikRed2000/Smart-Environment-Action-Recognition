@@ -1,10 +1,13 @@
-\begin{tabular}{@{}lcc@{}}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Train aug. (NTU) & Top-1 & Mean class \\
+ & \multicolumn{2}{c}{Raw inputs} & \multicolumn{2}{c}{Harmonized} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+Train aug. (NTU) & Top-1 & Mean cls. & Top-1 & Mean cls. \\
 \midrule
--- & 15.8 & 17.8 \\
-rand. joint & 11.5 & 17.9 \\
-lower-body (prop.) & 16.3 & 19.4 \\
-geometric (ours) & 15.2 & 19.2 \\
+-- & 15.8 & 17.8 & 23.7$\pm$1.1 & 27.5$\pm$2.9 \\
+rand. joint & 11.5 & 17.9 & 19.5$\pm$0.5 & 22.4$\pm$0.5 \\
+lower-body (prop.) & 16.3 & 19.4 & 25.2$\pm$2.4 & 26.3$\pm$1.7 \\
+geometric (ours) & 15.2 & 19.2 & 22.6$\pm$4.3 & 26.3$\pm$3.5 \\
+combined (ours) & -- & -- & 22.1$\pm$1.1 & 26.0$\pm$2.1 \\
 \bottomrule
 \end{tabular}

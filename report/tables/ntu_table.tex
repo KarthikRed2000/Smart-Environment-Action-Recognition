@@ -1,0 +1,21 @@
+\begin{tabular}{@{}llcccccccc@{}}
+\toprule
+ & & \multicolumn{5}{c}{Structured (geometric / proposal)} & \multicolumn{3}{c}{Held-out} \\
+\cmidrule(lr){3-7}\cmidrule(l){8-10}
+Model & Train aug. & Clean & Lower & Furn. & Furn.+N & Self & Arm$^\dagger$ & Temp.$^\dagger$ & Rand.$^\ddagger$ \\
+\midrule
+Bi-LSTM & -- & 75.9 & 53.9 & 56.3 & 66.9 & 73.0 & 39.8 & 43.6 & 65.1 \\
+Bi-LSTM & geometric (ours) & 76.6 & 72.9 & 75.1 & 75.0 & 76.0 & 51.7 & 52.7 & 69.8 \\
+\midrule
+1D-CNN & -- & 78.6 & 45.5 & 47.8 & 67.1 & 75.1 & 41.7 & 43.8 & 61.3 \\
+1D-CNN & geometric (ours) & 79.1 & 73.7 & 77.4 & 77.1 & 78.4 & 50.9 & \textbf{60.3} & 71.3 \\
+\midrule
+ST-GCN & -- & \textbf{82.2$\pm$0.5} & 76.5$\pm$2.5 & 73.8$\pm$2.3 & 78.5$\pm$0.5 & 79.0$\pm$0.4 & 64.6$\pm$1.2 & 42.4$\pm$2.7 & 40.0$\pm$4.4 \\
+ST-GCN & rand. joint & 81.7$\pm$0.6 & 76.1$\pm$1.0 & 75.3$\pm$1.0 & 78.5$\pm$0.4 & 80.4$\pm$0.5 & 62.3$\pm$3.6 & 35.5$\pm$4.5 & \textbf{80.9$\pm$0.4} \\
+ST-GCN & lower-body & 80.8$\pm$0.2 & 80.8$\pm$0.2 & 75.8$\pm$0.4 & 79.0$\pm$0.2 & 77.6$\pm$0.5 & 62.9$\pm$0.5 & 43.2$\pm$3.5 & 40.4$\pm$2.3 \\
+ST-GCN & geometric (ours) & 82.2$\pm$0.1 & \textbf{81.0$\pm$0.3} & \textbf{81.3$\pm$0.1} & \textbf{81.3$\pm$0.2} & \textbf{82.0$\pm$0.4} & \textbf{68.6$\pm$0.2} & 53.8$\pm$1.4 & 62.9$\pm$2.3 \\
+ST-GCN & combined (ours) & 81.7$\pm$0.1 & 80.2$\pm$0.2 & 81.1$\pm$0.2 & 81.0$\pm$0.2 & 81.3$\pm$0.1 & 67.4$\pm$0.7 & 54.0$\pm$0.8 & 79.6$\pm$0.3 \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Joints hidden (\%)}} & 0 & 32 & 19 & 20 & 3 & 24 & 41 & 30 \\
+\bottomrule
+\end{tabular}

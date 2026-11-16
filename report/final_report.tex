@@ -29,11 +29,13 @@ We replace it with a \emph{geometric} occlusion model, where joints are hidden b
 furniture occluder and by projection behind the person's own torso, and hidden joints are corrupted the way a sensor
 corrupts them. We test robustness on synthetic structured and held-out occlusions, on \emph{real} Kinect tracking failures in NTU RGB+D,
 and on \emph{real homes} (Toyota Smarthome).
-With ST-GCN, geometric training is the best or tied-best scheme on every structured occlusion and costs no clean accuracy.
-On Toyota Smarthome it keeps \tbd{X} of \tbd{Y} mean-class accuracy under furniture occlusion, where an unaugmented model falls to \tbd{22}.
-On real Kinect failures, geometric and random masking each give about $+6$ points, and combining them gives \tbd{...}.
-We also find that NTU$\rightarrow$Toyota zero-shot transfer is near chance unless both datasets use the same skeleton normalization.
-With harmonized normalization it reaches \tbd{...}.
+Over three seeds, geometric training of ST-GCN is the best or tied-best scheme on every structured occlusion, at no cost in clean accuracy.
+On Toyota Smarthome, under added furniture occlusion, it keeps 50.3\% mean-class accuracy against 53.3\% on the unmodified test set; an unaugmented model falls from 53.6\% to 24.6\%.
+On real Kinect failures, geometric and random masking each add about $+6$ points.
+Combining them is best overall ($+7.0$, and $+10.0$ on heavily occluded clips).
+The proposal's lower-body dropout gives almost nothing on real occlusion.
+NTU$\rightarrow$Toyota zero-shot transfer is near chance until both datasets share one skeleton normalization.
+With it, mean-class accuracy rises from 18--19\% to 22--28\%, and sit down / stand up go from ${\approx}0\%$ to 28--56\%.
 \end{abstract}
 
 %====================================================================
@@ -155,7 +157,7 @@ We report mean per-class accuracy, the standard metric given its long-tailed cla
 \textbf{Training.} All models are trained for 30 epochs with AdamW~\cite{loshchilov2019adamw} (learning rate $10^{-3}$, weight decay $10^{-4}$), a one-cycle schedule, batch size 64, label smoothing 0.1, and random rotation about the vertical axis ($\pm15^\circ$) and scaling (0.9--1.1).
 ST-GCN results are the mean$\pm$std over 3 seeds; baselines use one seed.
 Synthetic test masks are fixed (seed 123), so every model sees identical corrupted test sets.
-Training used one NVIDIA L4 (GCP); test-time latency is 5.4\,ms per clip at batch size 1.
+Training used one NVIDIA L4 (GCP), shared by up to 12 jobs; ST-GCN test-time latency is 5--7\,ms per clip at batch size 1 on that shared GPU.
 
 \subsection{Synthetic occlusion on NTU}
 \begin{table*}[t]
@@ -169,19 +171,24 @@ $^\dagger$Never seen in training by any scheme. $^\ddagger$Matches the training 
 \end{table*}
 
 Tab.~\ref{tab:ntu} shows three patterns.
-(1)~\emph{Geometric training is best or tied-best on every structured occlusion} and costs at most a few tenths of a point clean.
+(1)~\emph{Geometric training is best or tied-best on every structured occlusion}, with the same clean accuracy (82.2) as no augmentation.
+Over no augmentation it adds $+7.5$ on furniture and $+3.0$ on self-occlusion.
+It also improves the two held-out types, one arm ($+4.0$) and temporal blocks ($+11.4$).
+Seed variance is small (std $\leq$0.4 on structured tests, against up to 2.5 without augmentation).
 It also helps the backbones that are not graph-based: under furniture occlusion the 1D-CNN gains $+29.6$ and the Bi-LSTM $+18.8$.
 (2)~\emph{The proposal's lower-body dropout only helps on its own test}.
-On furniture occlusion, which hides the legs in a realistic way, it gains less than one point, because real occluders hide a \emph{varying, partial} set of joints rather than a fixed cluster.
-(3)~\emph{Random masking is a specialist}: it wins only on random masks and hurts temporal occlusion.
-\tbd{Combined: ...}.
+On furniture occlusion, which hides the legs in a realistic way, it gains only $+2.0$, against $+7.5$ for geometric.
+Real occluders hide a \emph{varying, partial} set of joints rather than a fixed cluster.
+(3)~\emph{Random masking is a specialist}: it wins only on random masks (80.9) and hurts temporal occlusion ($-6.9$).
+(4)~\emph{Combined} stays within 0.8 points of geometric on every structured test.
+It nearly matches random masking on random dropout (79.6 vs.\ 80.9, against 62.9 for geometric), so it is the best all-round scheme.
 Zero fill is much harder than noisy fill for unaugmented models (1D-CNN 47.8 vs.\ 67.1), so conclusions about robustness depend on how the missing joints are simulated.
 
 \subsection{Real occlusion: Kinect tracking failures}
 \begin{table}[t]
 \centering\footnotesize
 \setlength{\tabcolsep}{2.5pt}
-\input{tables/natural_table.tex}
+\resizebox{\linewidth}{!}{\input{tables/natural_table.tex}}
 \caption{Top-1 accuracy (\%) on NTU-Real (6{,}043 clips; \emph{heavy}: 2{,}139 clips with $\geq$20\% untracked joints).
 \emph{Kinect}: raw sensor output. \emph{Dropped}: untracked joints zeroed. ST-GCN: mean$\pm$std over 3 seeds.}
 \label{tab:real}
@@ -189,11 +196,12 @@ Zero fill is much harder than noisy fill for unaugmented models (1D-CNN 47.8 vs.
 
 Real Kinect failures are concentrated on the hands (51--54\% of hand joint-frames untracked), wrists (36\%) and elbows (22\%), and much less on the legs.
 This is the opposite of our proposal's assumption.
-Tab.~\ref{tab:real} shows that on raw sensor output every model is within about one point of the others: the sensor's guesses are good enough that augmentation does not matter.
-Once untracked joints are removed, as a confidence filter would do, accuracy drops sharply without augmentation (ST-GCN heavy: 78.7$\rightarrow$61.9).
-Geometric and random training each recover about $+8$ points.
-Lower-body dropout recovers nothing.
-\tbd{Combined: ...}
+Tab.~\ref{tab:real} shows that on raw sensor output all ST-GCN variants are within 1.3 points of each other (80.2--81.5): the sensor's guesses are good enough that augmentation barely matters.
+Once untracked joints are removed, as a confidence filter would do, accuracy drops sharply without augmentation (ST-GCN heavy: 78.0$\rightarrow$62.1).
+Geometric and random training recover $+9.2$ and $+7.5$ points on heavy clips.
+Combined recovers the most ($+10.0$, 72.1), with low variance.
+Lower-body dropout recovers almost nothing ($+0.9$), which confirms that the proposal's assumption does not hold on real data.
+The same holds for the baselines: geometric training lifts the 1D-CNN from 55.7 to 67.2 on heavy clips.
 
 \subsection{Real homes: Toyota Smarthome}
 \begin{table*}[t]
@@ -211,13 +219,13 @@ $^\dagger$Held out from all training schemes.}
 \label{fig:toyota}
 \end{figure}
 
-On the real Toyota test set (Tab.~\ref{tab:toyota}, Fig.~\ref{fig:toyota}), every augmentation keeps clean accuracy (about 53 mean-class, 74 top-1).
-The test set already contains real occlusion, so none of them is a free win.
-Under additional furniture occlusion the unaugmented model collapses (\tbd{53$\rightarrow$22}).
-Geometric training keeps \tbd{50.7}, lower-body \tbd{41.6} and random \tbd{30.8}.
-Under self-occlusion and temporal blocks, geometric is again best.
-Random masking remains a specialist for random masks.
-\tbd{Combined: ...}
+On the real Toyota test set (Tab.~\ref{tab:toyota}, Fig.~\ref{fig:toyota}), all schemes are within 1.8 points (51.8--53.6 mean class, 72.5--74.1 top-1).
+No augmentation improves on the occlusion already present in these real homes.
+Under additional furniture occlusion the unaugmented model collapses ($53.6\rightarrow24.6$).
+Geometric training keeps 50.3, against 42.5 for lower-body and 32.3 for random.
+Geometric is also best under self-occlusion (52.7).
+Combined trades about 2 points on furniture (48.0) for the best result on held-out temporal blocks (36.0 vs.\ 30.3) and near-specialist accuracy on random dropout (49.4 vs.\ 51.3).
+Removing a whole arm remains hard for every scheme (19--25 mean class), because 3 of only 13 joints carry most of the hand-object information.
 
 \subsection{Lab-to-home transfer}
 \begin{table}[t]
@@ -225,22 +233,29 @@ Random masking remains a specialist for random masks.
 \setlength{\tabcolsep}{3pt}
 \input{tables/transfer_table.tex}
 \caption{Zero-shot NTU$\rightarrow$Toyota on the 8 shared classes (7{,}520 Toyota clips; chance 12.5\%).
-Models are trained on NTU (13 joints); logits are restricted to the shared classes.}
+Models are trained on NTU (13 joints); logits are restricted to the shared classes.
+Raw: first-frame centering, 1 seed. Harmonized: per-frame root centering and torso scaling, 3 seeds.}
 \label{tab:transfer}
 \end{table}
 
 We train on NTU with the 13 shared joints and test on all Toyota clips of 8 shared classes (drink, eat, sit down, stand up, read, phone call, laptop$\rightarrow$type, tablet$\rightarrow$phone).
 With raw inputs, transfer is near chance for every scheme (Tab.~\ref{tab:transfer}).
 Sit down and stand up are almost never recognized (0--13\%) because the NTU models depend on the global pelvis trajectory, which LCR-Net poses lack.
-Harmonized normalization \tbd{...}.
-Occlusion augmentation does not close the gap, because it is not the dominant one: the differences in pose source (Kinect depth vs.\ monocular RGB), viewpoint and scale matter more.
+Harmonized normalization lifts mean-class accuracy to 22--28\% for every scheme.
+Sit down and stand up rise to 28--39\% and 34--56\%.
+Fine-grained hand-object classes stay low (eat 6--10\%, phone call 6--17\%).
+Differences between augmentation schemes are within seed noise (std up to 3.5).
+Occlusion augmentation does not close the gap, because occlusion is not the dominant one.
+The pose source (Kinect depth vs.\ monocular RGB), viewpoint and the scripted-vs.-spontaneous style of the actions matter more.
 
 %====================================================================
 \section{Discussion}\label{sec:disc}
 \textbf{What transferred to real data.}
 (i)~Masking a \emph{fixed} part (our proposal) does not transfer. It helps only on its own test, and real occlusion affects other parts, mostly the hands on Kinect.
-(ii)~Geometric occlusion gives the most robust model on structured occlusion in both the lab and real homes. On real Kinect failures it ties random masking.
-(iii)~Combining both \tbd{...}.
+(ii)~Geometric occlusion gives the most robust model on structured occlusion in both the lab and real homes, and it slightly beats random masking on real Kinect failures.
+(iii)~Adding sparse random dropout (combined) gives the best model on real Kinect failures and on held-out temporal occlusion.
+It costs about 1--2 points on structured furniture occlusion in Toyota, so the choice between the two depends on the sensor.
+(iv)~Normalization can matter more than augmentation: one centering mismatch removed a whole cue (global motion) and made two classes unrecognizable.
 
 \textbf{What the simulation gets wrong.}
 Kinect loses hands mostly through tracking failure at the extremities, not through being hidden behind the torso.

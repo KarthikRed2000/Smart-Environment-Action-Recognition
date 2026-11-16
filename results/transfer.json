@@ -10,10 +10,39 @@
     "play with phone",
     "type on keyboard"
   ],
-  "models": {
+  "class_counts": {
+    "drink water": 2905,
+    "eat meal": 829,
+    "sit down": 1116,
+    "stand up": 833,
+    "reading": 942,
+    "phone call": 450,
+    "play with phone": 49,
+    "type on keyboard": 396
+  },
+  "raw": {
     "none": {
+      "runs": [
+        {
+          "tag": "ntu13_stgcn_none",
+          "acc": 0.15811170212765957,
+          "mean_class_acc": 0.1779953819795594,
+          "per_class": {
+            "drink water": 0.26092943201376934,
+            "eat meal": 0.05186972255729795,
+            "sit down": 0.002688172043010753,
+            "stand up": 0.007202881152460984,
+            "reading": 0.18471337579617833,
+            "phone call": 0.09111111111111111,
+            "play with phone": 0.46938775510204084,
+            "type on keyboard": 0.3560606060606061
+          }
+        }
+      ],
       "acc": 0.15811170212765957,
+      "acc_std": 0.0,
       "mean_class_acc": 0.1779953819795594,
+      "mean_class_acc_std": 0.0,
       "per_class": {
         "drink water": 0.26092943201376934,
         "eat meal": 0.05186972255729795,
@@ -26,8 +55,27 @@
       }
     },
     "random": {
+      "runs": [
+        {
+          "tag": "ntu13_stgcn_random",
+          "acc": 0.1148936170212766,
+          "mean_class_acc": 0.17854852980849617,
+          "per_class": {
+            "drink water": 0.13631669535283994,
+            "eat meal": 0.06875753920386007,
+            "sit down": 0.016129032258064516,
+            "stand up": 0.027611044417767107,
+            "reading": 0.05626326963906582,
+            "phone call": 0.12444444444444444,
+            "play with phone": 0.3877551020408163,
+            "type on keyboard": 0.6111111111111112
+          }
+        }
+      ],
       "acc": 0.1148936170212766,
+      "acc_std": 0.0,
       "mean_class_acc": 0.17854852980849617,
+      "mean_class_acc_std": 0.0,
       "per_class": {
         "drink water": 0.13631669535283994,
         "eat meal": 0.06875753920386007,
@@ -40,8 +88,27 @@
       }
     },
     "lowerbody": {
+      "runs": [
+        {
+          "tag": "ntu13_stgcn_lowerbody",
+          "acc": 0.16316489361702127,
+          "mean_class_acc": 0.1939030851221809,
+          "per_class": {
+            "drink water": 0.2351118760757315,
+            "eat meal": 0.06272617611580217,
+            "sit down": 0.008960573476702509,
+            "stand up": 0.12965186074429771,
+            "reading": 0.06794055201698514,
+            "phone call": 0.1622222222222222,
+            "play with phone": 0.32653061224489793,
+            "type on keyboard": 0.5580808080808081
+          }
+        }
+      ],
       "acc": 0.16316489361702127,
+      "acc_std": 0.0,
       "mean_class_acc": 0.1939030851221809,
+      "mean_class_acc_std": 0.0,
       "per_class": {
         "drink water": 0.2351118760757315,
         "eat meal": 0.06272617611580217,
@@ -54,8 +121,27 @@
       }
     },
     "geometric": {
+      "runs": [
+        {
+          "tag": "ntu13_stgcn_geometric",
+          "acc": 0.15212765957446808,
+          "mean_class_acc": 0.19150313862232504,
+          "per_class": {
+            "drink water": 0.23580034423407917,
+            "eat meal": 0.07720144752714113,
+            "sit down": 0.017921146953405017,
+            "stand up": 0.006002400960384154,
+            "reading": 0.07006369426751592,
+            "phone call": 0.13333333333333333,
+            "play with phone": 0.42857142857142855,
+            "type on keyboard": 0.5631313131313131
+          }
+        }
+      ],
       "acc": 0.15212765957446808,
+      "acc_std": 0.0,
       "mean_class_acc": 0.19150313862232504,
+      "mean_class_acc_std": 0.0,
       "per_class": {
         "drink water": 0.23580034423407917,
         "eat meal": 0.07720144752714113,
@@ -65,6 +151,323 @@
         "phone call": 0.13333333333333333,
         "play with phone": 0.42857142857142855,
         "type on keyboard": 0.5631313131313131
+      }
+    }
+  },
+  "harmonized": {
+    "none": {
+      "runs": [
+        {
+          "tag": "ntu13h_stgcn_none",
+          "acc": 0.22486702127659575,
+          "mean_class_acc": 0.24117550676599167,
+          "per_class": {
+            "drink water": 0.22306368330464715,
+            "eat meal": 0.07599517490952955,
+            "sit down": 0.28225806451612906,
+            "stand up": 0.468187274909964,
+            "reading": 0.08598726114649681,
+            "phone call": 0.13111111111111112,
+            "play with phone": 0.3673469387755102,
+            "type on keyboard": 0.29545454545454547
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_none_s1",
+          "acc": 0.23976063829787234,
+          "mean_class_acc": 0.2922073206751614,
+          "per_class": {
+            "drink water": 0.17246127366609296,
+            "eat meal": 0.0856453558504222,
+            "sit down": 0.41935483870967744,
+            "stand up": 0.5162064825930373,
+            "reading": 0.10509554140127389,
+            "phone call": 0.12444444444444444,
+            "play with phone": 0.5306122448979592,
+            "type on keyboard": 0.3838383838383838
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_none_s2",
+          "acc": 0.24654255319148935,
+          "mean_class_acc": 0.29136328654153065,
+          "per_class": {
+            "drink water": 0.1576592082616179,
+            "eat meal": 0.054282267792521106,
+            "sit down": 0.4614695340501792,
+            "stand up": 0.687875150060024,
+            "reading": 0.04246284501061571,
+            "phone call": 0.08444444444444445,
+            "play with phone": 0.42857142857142855,
+            "type on keyboard": 0.41414141414141414
+          }
+        }
+      ],
+      "acc": 0.23705673758865245,
+      "acc_std": 0.011087852823355048,
+      "mean_class_acc": 0.2749153713275612,
+      "mean_class_acc_std": 0.02922262725833318,
+      "per_class": {
+        "drink water": 0.1843947217441193,
+        "eat meal": 0.07197426618415761,
+        "sit down": 0.38769414575866196,
+        "stand up": 0.5574229691876751,
+        "reading": 0.07784854918612881,
+        "phone call": 0.11333333333333333,
+        "play with phone": 0.44217687074829937,
+        "type on keyboard": 0.36447811447811446
+      }
+    },
+    "random": {
+      "runs": [
+        {
+          "tag": "ntu13h_stgcn_random",
+          "acc": 0.19188829787234044,
+          "mean_class_acc": 0.22338176428295636,
+          "per_class": {
+            "drink water": 0.1370051635111876,
+            "eat meal": 0.17611580217129072,
+            "sit down": 0.19265232974910393,
+            "stand up": 0.4141656662665066,
+            "reading": 0.11464968152866242,
+            "phone call": 0.07111111111111111,
+            "play with phone": 0.20408163265306123,
+            "type on keyboard": 0.4772727272727273
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_random_s1",
+          "acc": 0.19295212765957448,
+          "mean_class_acc": 0.21948007375965012,
+          "per_class": {
+            "drink water": 0.12013769363166954,
+            "eat meal": 0.07478890229191798,
+            "sit down": 0.3718637992831541,
+            "stand up": 0.2424969987995198,
+            "reading": 0.13481953290870488,
+            "phone call": 0.05333333333333334,
+            "play with phone": 0.08163265306122448,
+            "type on keyboard": 0.6767676767676768
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_random_s2",
+          "acc": 0.20106382978723406,
+          "mean_class_acc": 0.2296315067459733,
+          "per_class": {
+            "drink water": 0.15008605851979345,
+            "eat meal": 0.054282267792521106,
+            "sit down": 0.2724014336917563,
+            "stand up": 0.37815126050420167,
+            "reading": 0.14118895966029724,
+            "phone call": 0.04888888888888889,
+            "play with phone": 0.16326530612244897,
+            "type on keyboard": 0.6287878787878788
+          }
+        }
+      ],
+      "acc": 0.1953014184397163,
+      "acc_std": 0.005018662357396884,
+      "mean_class_acc": 0.22416444826285994,
+      "mean_class_acc_std": 0.005120775681305601,
+      "per_class": {
+        "drink water": 0.1357429718875502,
+        "eat meal": 0.10172899075190993,
+        "sit down": 0.2789725209080048,
+        "stand up": 0.344937975190076,
+        "reading": 0.1302193913658882,
+        "phone call": 0.05777777777777778,
+        "play with phone": 0.1496598639455782,
+        "type on keyboard": 0.5942760942760943
+      }
+    },
+    "lowerbody": {
+      "runs": [
+        {
+          "tag": "ntu13h_stgcn_lowerbody",
+          "acc": 0.24242021276595746,
+          "mean_class_acc": 0.2536629011526477,
+          "per_class": {
+            "drink water": 0.2716006884681583,
+            "eat meal": 0.06513872135102533,
+            "sit down": 0.27419354838709675,
+            "stand up": 0.36494597839135656,
+            "reading": 0.12951167728237792,
+            "phone call": 0.17777777777777778,
+            "play with phone": 0.3673469387755102,
+            "type on keyboard": 0.3787878787878788
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_lowerbody_s1",
+          "acc": 0.2788563829787234,
+          "mean_class_acc": 0.28216240427001515,
+          "per_class": {
+            "drink water": 0.2654044750430293,
+            "eat meal": 0.1037394451145959,
+            "sit down": 0.3942652329749104,
+            "stand up": 0.4789915966386555,
+            "reading": 0.15817409766454352,
+            "phone call": 0.22,
+            "play with phone": 0.2857142857142857,
+            "type on keyboard": 0.351010101010101
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_lowerbody_s2",
+          "acc": 0.23417553191489363,
+          "mean_class_acc": 0.2519838762978947,
+          "per_class": {
+            "drink water": 0.16660929432013769,
+            "eat meal": 0.05910735826296743,
+            "sit down": 0.3324372759856631,
+            "stand up": 0.5462184873949579,
+            "reading": 0.16772823779193205,
+            "phone call": 0.11333333333333333,
+            "play with phone": 0.16326530612244897,
+            "type on keyboard": 0.4671717171717172
+          }
+        }
+      ],
+      "acc": 0.2518173758865248,
+      "acc_std": 0.02377655607910759,
+      "mean_class_acc": 0.26260306057351923,
+      "mean_class_acc_std": 0.016959679404221113,
+      "per_class": {
+        "drink water": 0.23453815261044178,
+        "eat meal": 0.07599517490952955,
+        "sit down": 0.3336320191158901,
+        "stand up": 0.4633853541416566,
+        "reading": 0.15180467091295116,
+        "phone call": 0.17037037037037037,
+        "play with phone": 0.272108843537415,
+        "type on keyboard": 0.398989898989899
+      }
+    },
+    "geometric": {
+      "runs": [
+        {
+          "tag": "ntu13h_stgcn_geometric",
+          "acc": 0.21515957446808512,
+          "mean_class_acc": 0.2647183555430813,
+          "per_class": {
+            "drink water": 0.18932874354561102,
+            "eat meal": 0.07237635705669482,
+            "sit down": 0.23207885304659498,
+            "stand up": 0.46218487394957986,
+            "reading": 0.08280254777070063,
+            "phone call": 0.13777777777777778,
+            "play with phone": 0.42857142857142855,
+            "type on keyboard": 0.5126262626262627
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_geometric_s1",
+          "acc": 0.27406914893617024,
+          "mean_class_acc": 0.29786681831317713,
+          "per_class": {
+            "drink water": 0.2172117039586919,
+            "eat meal": 0.04463208685162847,
+            "sit down": 0.3387096774193548,
+            "stand up": 0.7334933973589436,
+            "reading": 0.15286624203821655,
+            "phone call": 0.2111111111111111,
+            "play with phone": 0.30612244897959184,
+            "type on keyboard": 0.3787878787878788
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_geometric_s2",
+          "acc": 0.18936170212765957,
+          "mean_class_acc": 0.22771601692554466,
+          "per_class": {
+            "drink water": 0.12771084337349398,
+            "eat meal": 0.07478890229191798,
+            "sit down": 0.2939068100358423,
+            "stand up": 0.3709483793517407,
+            "reading": 0.05201698513800425,
+            "phone call": 0.08,
+            "play with phone": 0.16326530612244897,
+            "type on keyboard": 0.6590909090909091
+          }
+        }
+      ],
+      "acc": 0.2261968085106383,
+      "acc_std": 0.043418927758372125,
+      "mean_class_acc": 0.263433730260601,
+      "mean_class_acc_std": 0.035093039629234955,
+      "per_class": {
+        "drink water": 0.17808376362593234,
+        "eat meal": 0.06393244873341376,
+        "sit down": 0.28823178016726403,
+        "stand up": 0.5222088835534214,
+        "reading": 0.09589525831564048,
+        "phone call": 0.14296296296296299,
+        "play with phone": 0.2993197278911564,
+        "type on keyboard": 0.5168350168350169
+      }
+    },
+    "combined": {
+      "runs": [
+        {
+          "tag": "ntu13h_stgcn_combined",
+          "acc": 0.20970744680851064,
+          "mean_class_acc": 0.2354118203941953,
+          "per_class": {
+            "drink water": 0.1855421686746988,
+            "eat meal": 0.06393244873341375,
+            "sit down": 0.2670250896057348,
+            "stand up": 0.40816326530612246,
+            "reading": 0.06050955414012739,
+            "phone call": 0.09555555555555556,
+            "play with phone": 0.20408163265306123,
+            "type on keyboard": 0.5984848484848485
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_combined_s1",
+          "acc": 0.23071808510638298,
+          "mean_class_acc": 0.27536216916201994,
+          "per_class": {
+            "drink water": 0.15800344234079175,
+            "eat meal": 0.05790108564535585,
+            "sit down": 0.3888888888888889,
+            "stand up": 0.4765906362545018,
+            "reading": 0.09660297239915075,
+            "phone call": 0.11777777777777777,
+            "play with phone": 0.30612244897959184,
+            "type on keyboard": 0.601010101010101
+          }
+        },
+        {
+          "tag": "ntu13h_stgcn_combined_s2",
+          "acc": 0.22167553191489361,
+          "mean_class_acc": 0.26789925468083703,
+          "per_class": {
+            "drink water": 0.10223752151462995,
+            "eat meal": 0.05307599517490953,
+            "sit down": 0.3503584229390681,
+            "stand up": 0.595438175270108,
+            "reading": 0.1029723991507431,
+            "phone call": 0.10222222222222223,
+            "play with phone": 0.10204081632653061,
+            "type on keyboard": 0.7348484848484849
+          }
+        }
+      ],
+      "acc": 0.2207003546099291,
+      "acc_std": 0.010539210525608328,
+      "mean_class_acc": 0.25955774807901744,
+      "mean_class_acc_std": 0.021241307421127748,
+      "per_class": {
+        "drink water": 0.14859437751004015,
+        "eat meal": 0.05830317651789304,
+        "sit down": 0.33542413381123065,
+        "stand up": 0.4933973589435774,
+        "reading": 0.08669497523000709,
+        "phone call": 0.10518518518518517,
+        "play with phone": 0.20408163265306123,
+        "type on keyboard": 0.6447811447811448
       }
     }
   }
